@@ -30,8 +30,8 @@ typedef struct _SpiRegHandle{
 
 
 
-extern int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uint8_t *reg_data);
-extern int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *reg_data);
+extern int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uint8_t *reg_data, uint32_t timeout);
+extern int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *reg_data, uint32_t timeout);
 extern int SpiReg_Init(SpiRegHandle *h, char* spi_dev, char* uart_dev, uint32_t speed);
 extern void SpiReg_Exit(SpiRegHandle *h);
 #ifdef __cplusplus

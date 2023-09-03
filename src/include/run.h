@@ -24,25 +24,19 @@
 
 enum RUN_FUN{
     FUN_RW,
-    FUN_SHOW_MCU_VER,
-    FUN_SHOW_MCU_MODE,
     FUN_SHOW_MCU_INFO,
+    FUN_UPDATE,
 };
 
 typedef struct _RunConfig{
-    SpiRegHandle  spi_reg_handle;
     uint8_t       wr_buf[WR_BUF_MAX];
     uint16_t      reg_addr;
     uint16_t      reg_cnt;
     uint32_t      test_cnt;
     int           is_write;
-    int           is_show_mcu_mode;
-    int           is_show_mcu_ver;
     int           is_show_mcu_info;
     int           is_read;
-    char          *spi_dev_path;
-    char          *uart_dev_path;
-    uint32_t      spi_speed;
+    char          *mcu_firmware;
     enum RUN_FUN  mode;
 }RunConfig;
  

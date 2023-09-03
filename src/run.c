@@ -19,24 +19,7 @@
 #include "run.h"
 #include "debug.h"
 #include "typedef.h"
-
-
-#define ROREG_SN_SIZE   32
-
-#pragma pack(1)
-typedef struct _RoReg{
-    struct {
-        uint8_t major;
-        uint8_t minor;
-        uint8_t patch;
-        uint8_t reserved;
-    }software_version;
-    char        sn[ROREG_SN_SIZE];
-    uint32_t    partition;  /* 当前分区 0：bootloder 1:app */
-}RoReg;
-
-#pragma pack()
-
+#include "rearview_mcu.h"
 
 static void make_data(uint8_t* wr_buf, uint16_t cnt ){
     int i;
@@ -57,12 +40,12 @@ static int _run_test(RunConfig *config){
         
         if(config->is_write){
             make_data(config->wr_buf, config->reg_cnt);
-            ret = SpiReg_Write(&config->spi_reg_handle, config->reg_addr, config->reg_cnt, config->wr_buf);
+            ret = RVMcu_WriteReg(config->reg_addr, config->wr_buf, config->reg_cnt, 200);
         }else{
-            ret = SpiReg_Read(&config->spi_reg_handle, config->reg_addr, config->reg_cnt, config->wr_buf);
+            ret = RVMcu_ReadReg(config->reg_addr, config->wr_buf, config->reg_cnt, 200);
         }
         if(ret < 0){
-            dbg_infoln("第%d次测试:失败");
+            dbg_infoln("第%d次测试:失败",i);
         }
         if(ret<0)
             err_cnt++;
@@ -72,10 +55,6 @@ static int _run_test(RunConfig *config){
     return 0;
 }
 
-static inline int _loader_ro_reg(RunConfig *config){
-    return SpiReg_Read(&config->spi_reg_handle, 0x0000, sizeof(RoReg), config->wr_buf);
-}
-
 static int fun_wr(RunConfig *config){
     int ret;
     if(config->test_cnt){
@@ -83,14 +62,14 @@ static int fun_wr(RunConfig *config){
         }
 
         if(config->is_write){
-            ret = SpiReg_Write(&config->spi_reg_handle, config->reg_addr, config->reg_cnt, config->wr_buf);
+            ret = RVMcu_WriteReg(config->reg_addr, config->wr_buf, config->reg_cnt, 200);
             if(ret < 0){
                 dbg_errfl("ERROR 写寄存器失败 ret = %d",ret);
                 return -1;
             }
             
         }else{
-            ret = SpiReg_Read(&config->spi_reg_handle, config->reg_addr, config->reg_cnt, config->wr_buf);
+            ret = RVMcu_ReadReg(config->reg_addr, config->wr_buf, config->reg_cnt, 200);
             if(ret < 0){
                 dbg_errfl("ERROR 读寄存器失败 ret = %d",ret);
                 return -1;
@@ -101,39 +80,20 @@ static int fun_wr(RunConfig *config){
     return 0;
 }
 
-static int fun_show_mcu_ver(RunConfig *config){
-    int ret;
-    RoReg *ro_reg = (RoReg *)config->wr_buf;
-    ret = _loader_ro_reg(config);
-    if(ret < 0)
-        dbg_errfl("_loader_ro_reg error! ret = %d",ret);
-    dbg_inforaw("mcu ver: v%d.%d.%d\n", ro_reg->software_version.major,
-                                      ro_reg->software_version.minor,
-                                      ro_reg->software_version.patch );
-    return 0;
-}
-
-static int fun_show_mcu_mode(RunConfig *config){
-    int ret;
-    RoReg *ro_reg = (RoReg *)config->wr_buf;
-    ret = _loader_ro_reg(config);
-    if(ret < 0)
-        dbg_errfl("_loader_ro_reg error! ret = %d",ret);
-    dbg_inforaw("mcu mode: %s\n",ro_reg->partition == 0? "bootloader":"app");
-
-    return 0;
-}
-
 static int fun_show_mcu_info(RunConfig *config){
     int ret;
-    RoReg *ro_reg = (RoReg *)config->wr_buf;
-    ret = _loader_ro_reg(config);
-    if(ret < 0)
-        dbg_errfl("_loader_ro_reg error! ret = %d",ret);
-    dbg_inforaw("mcu mode: %s\n",ro_reg->partition == 0? "bootloader":"app");
-    dbg_inforaw("mcu ver: V%d.%d.%d\n", ro_reg->software_version.major,
-                                      ro_reg->software_version.minor,
-                                      ro_reg->software_version.patch );
+    McuInfo *mcu_info = (McuInfo *)config->wr_buf;
+    ret = RVMcu_ReadReg(ROREG_INFO_START, (uint8_t*)mcu_info, sizeof(McuInfo), 200);
+    if(ret < 0){
+        dbg_errfl("SpiReg_Read error! ret = %d",ret);
+        return -1;
+    }
+    dbg_inforaw("mcu mode: %s\n",mcu_info->partition == 0? "bootloader":"app");
+    dbg_inforaw("mcu sn: %s\n",mcu_info->sn);
+    dbg_inforaw("mcu software model: %s\n",mcu_info->software_model);
+    dbg_inforaw("mcu ver: V%d.%d.%d\n", mcu_info->software_version.major,
+                                      mcu_info->software_version.minor,
+                                      mcu_info->software_version.patch );
 
     return 0;
 }
@@ -143,12 +103,10 @@ int  run(RunConfig *config){
 
     if(config->mode == FUN_RW){
         return fun_wr(config);
-    }else if(config->mode == FUN_SHOW_MCU_VER){
-        return fun_show_mcu_ver(config);
-    }else if(config->mode == FUN_SHOW_MCU_MODE){
-        return fun_show_mcu_mode(config);
     }else if(config->mode == FUN_SHOW_MCU_INFO){
         return fun_show_mcu_info(config);
+    }else if(config->mode == FUN_UPDATE){
+        return RVMcu_BurnMcu(config->mcu_firmware);
     }
 
     return 0;

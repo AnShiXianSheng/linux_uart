@@ -25,15 +25,9 @@
 #include "debug.h"
 #include "argparse.h"
 #include "spi_reg.h"
-
+#include "rearview_mcu.h"
 
 #include "run.h"
-
-#define STR(x) #x
-
-#define DEFAULT_SPI_SPEED 10000000
-#define DEFAULT_SPI_SPEED_STR STR(DEFAULT_SPI_SPEED)
-
 
 
 static const char* const usages[] = {
@@ -56,6 +50,7 @@ static int hex_string_to_byte_array(const char *hexString, unsigned char *byteAr
     }
     return len / 2;
 }
+
 static int other_argparse_parse(RunConfig* config, int argc, const char* argv[]){
     char *endptr;
     if((config->is_write && config->is_read))
@@ -86,19 +81,12 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
         return 0;
     }
 
-    if(config->is_show_mcu_mode){
-        config->mode = FUN_SHOW_MCU_MODE;
-        return 0;
-    }
-
-    if(config->is_show_mcu_ver){
-        config->mode = FUN_SHOW_MCU_VER;
-        return 0;
-    }
-
     if(config->is_show_mcu_info){
         config->mode = FUN_SHOW_MCU_INFO;
         return 0;
+    }
+    if(config->mcu_firmware){
+        config->mode = FUN_UPDATE;
     }
     
     return 0;
@@ -108,22 +96,19 @@ int main(int argc, const char* argv[]){
     int ret;
     struct argparse argparse;
     RunConfig  run_config = {
-        .is_read = 0, .is_write = 0, .is_show_mcu_mode = 0, .is_show_mcu_ver = 0,
-        .test_cnt = 0,.spi_speed = DEFAULT_SPI_SPEED,.wr_buf = {0},
-        .reg_addr = 0x0000, .reg_cnt = 0, .spi_dev_path = "/dev/spidev0.0",.uart_dev_path = "/dev/ttyLP1"
+        .is_read = 0, .is_write = 0,
+        .test_cnt = 0,.wr_buf = {0},
+        .reg_addr = 0x0000, .reg_cnt = 0, 
+        .mcu_firmware = NULL
     };
     struct argparse_option options[] = {
         OPT_HELP(),
         OPT_GROUP("基本命令"),
         OPT_BOOLEAN('w', "write", &run_config.is_write, "写寄存器", NULL, 0, 0),
         OPT_BOOLEAN('r', "read", &run_config.is_read, "读寄存器", NULL, 0, 0),
-        OPT_BOOLEAN('e', "show-mcu-mode", &run_config.is_show_mcu_mode, "显示mcu模式", NULL, 0, 0),
-        OPT_BOOLEAN('v', "show-mcu-ver", &run_config.is_show_mcu_ver, "显示mcu软件版本号", NULL, 0, 0),
         OPT_BOOLEAN('i', "show-mcu-info", &run_config.is_show_mcu_info, "显示mcu所有信息", NULL, 0, 0),
-        OPT_STRING('d',"device", &run_config.spi_dev_path, "设备地址，默认使用 /dev/spidev0.0", NULL, 0),
-        OPT_STRING('u',"uartpath", &run_config.uart_dev_path, "设备地址，默认使用 /dev/ttyLP1", NULL, 0),
+        OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
         OPT_INTEGER('t', "test", &run_config.test_cnt, "测试模式", NULL, 0, 0),
-        OPT_INTEGER('s',"speed", &run_config.spi_speed, "SPI速率,默认使用 " DEFAULT_SPI_SPEED_STR , NULL, 0),
         OPT_END(),
     };
     debug_init();
@@ -140,14 +125,13 @@ int main(int argc, const char* argv[]){
     if(ret)
         goto help;
 
-    ret = SpiReg_Init(&run_config.spi_reg_handle, run_config.spi_dev_path, run_config.uart_dev_path, run_config.spi_speed);
+    ret = RVMcu_Init();
     if(ret < 0){
-        dbg_inforaw("ERROR: 打开设备失败\n");
-        exit(1);
+        dbg_errfl("RVMcu_Init :%d",ret);
+        return ret;
     }
-
     ret = run(&run_config);
-    SpiReg_Exit(&run_config.spi_reg_handle);
+    RVMcu_Exit();
     return ret;
 help:
     argparse_help_cb_no_exit(&argparse, options);

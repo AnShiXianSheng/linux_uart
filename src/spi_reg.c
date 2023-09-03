@@ -27,6 +27,8 @@
 #include "pp_uart.h"
 
 #define SPI_TIMEOUT_MS                  100
+#define SPI_START_TIMEOUT_MS            55
+
 
 #define SPI_CMD_READ_REG                (0x03)
 #define SPI_CMD_WRITE_REG               (0x06)
@@ -52,7 +54,7 @@
 #define WR_DATA_ALIGN_BYTE                  8  /* 传输数据时向8字节取整 */
 
 
-#define UAER_SPEED                      1000000
+#define UART_SPEED                      1000000
 
 
 
@@ -68,13 +70,13 @@ static int _TransferSpi(SpiRegHandle *h, size_t length)
 	return ret;
 }
 
-static int _GotoStartCmd(SpiRegHandle *h){
+static int _GotoStartCmd(SpiRegHandle *h, uint32_t timeout){
     uint8_t ch = SPI_CMD_START;
     int ret;
     uart_InClean(h->uart_fd);
     ret = uart_Write(h->uart_fd, &ch, 1);
     if(ret != 1) return -1;
-    ret = uart_Read(h->uart_fd, &ch, 1, SPI_TIMEOUT_MS);
+    ret = uart_Read(h->uart_fd, &ch, 1, (int)timeout);
     //if(ret <= 0 || ch != SPI_ACK) return -1;
     if(ret <= 0) return -1;
     if(ch != SPI_ACK) {
@@ -85,10 +87,10 @@ static int _GotoStartCmd(SpiRegHandle *h){
     return 0;
 }
 
-static int _WaitAck(SpiRegHandle *h){
+static int _WaitAck(SpiRegHandle *h, uint32_t timeout){
     uint8_t ch = 0x00;
     int ret;
-    ret = uart_Read(h->uart_fd, &ch, 1, SPI_TIMEOUT_MS);
+    ret = uart_Read(h->uart_fd, &ch, 1, (int)timeout);
     if(ret != 1 || ch != SPI_ACK) return -1;
     uart_InClean(h->uart_fd);
     return 0;
@@ -104,8 +106,7 @@ static int _WaitAck(SpiRegHandle *h){
  * @param  reg_data         装寄存器数据的指针
  * @return return 成功0 失败负数 一般情况下 -2是超时 -3是crc错误，不排除其他系统返回值和他们一样
  */
-int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *reg_data)
-{
+int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *reg_data, uint32_t timeout){
     int ret;
     uint16_t crc16_val = 0xffff;
     uint16_t read_crc16_val = 0x0000;
@@ -120,11 +121,11 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
     SET_MEM_VAL_TYPE_SYSTEM_TO_BIG(h->tx_buf + CMD_WR_LEN_2BYTE_OFFSET, reg_cnt, uint16_t);
     crc16_val = crc16(crc16_val, h->tx_buf, CMD_WR_CMD_LEN);
 
-    ret = _GotoStartCmd(h);
+    ret = _GotoStartCmd(h, timeout);
     if(ret < 0) return -2;
     ret = _TransferSpi(h, SPI_CMD_LEN);
     if(ret < 0) return ret;
-    ret = _WaitAck(h);
+    ret = _WaitAck(h, timeout);
     if(ret < 0) return -2;
     trans_length = reg_cnt + WR_CRC_LEN;
         /* 计算需要填充的大小 */
@@ -133,7 +134,7 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
     ret = _TransferSpi(h, trans_length);
     if(ret < 0) return ret;
 
-    ret = _WaitAck(h);
+    ret = _WaitAck(h, timeout);
     if(ret < 0) return -2;
     
     crc16_val = crc16(crc16_val, h->rx_buf, reg_cnt);
@@ -149,7 +150,7 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
     return 0;
 }
 
-int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uint8_t *reg_data){
+int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uint8_t *reg_data, uint32_t timeout){
     int ret;
     uint16_t crc16_val = 0xffff;
     size_t trans_length = 0;
@@ -163,13 +164,13 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     SET_MEM_VAL_TYPE_SYSTEM_TO_BIG(h->tx_buf + CMD_WR_LEN_2BYTE_OFFSET, reg_cnt, uint16_t);
     crc16_val = crc16(crc16_val, h->tx_buf, CMD_WR_CMD_LEN);
 
-    ret = _GotoStartCmd(h);
+    ret = _GotoStartCmd(h, timeout);
     if(ret < 0) return -2;
 
     ret = _TransferSpi(h, SPI_CMD_LEN);
     if(ret < 0) return ret;
 
-    ret = _WaitAck(h);
+    ret = _WaitAck(h, timeout);
     if(ret < 0) return -2;
     /* 开始准备发送的数据 */
     crc16_val = crc16(crc16_val, reg_data, reg_cnt);
@@ -184,7 +185,7 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     ret = _TransferSpi(h, trans_length);
     if(ret < 0) return ret;
 
-    ret = _WaitAck(h);
+    ret = _WaitAck(h, timeout);
     if(ret < 0) return -2;
     return ret;
 }
@@ -220,7 +221,7 @@ int SpiReg_Init(SpiRegHandle *h, char* spi_dev, char* uart_dev, uint32_t spi_spe
     h->fd =fd;
     h->speed = spi_speed;
 
-    h->uart_fd = uart_Open(uart_dev, UAER_SPEED, 8, 1, 'N');
+    h->uart_fd = uart_Open(uart_dev, UART_SPEED, 8, 1, 'N');
     if(h->uart_fd < 0) goto err_out;
     return 0;
 err_out:

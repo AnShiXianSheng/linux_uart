@@ -45,7 +45,9 @@ add_executable(    ${TARGET_APP}
 					"${PROJECT_SOURCE_DIR}/general/pp_uart.c"
 					"${PROJECT_SOURCE_DIR}/main.c"
 					"${PROJECT_SOURCE_DIR}/spi_reg.c"
+					"${PROJECT_SOURCE_DIR}/regwr_cb.c"
 					"${PROJECT_SOURCE_DIR}/run.c"
+					"${PROJECT_SOURCE_DIR}/rearview_mcu.c"
 )
 
 # 指定库
