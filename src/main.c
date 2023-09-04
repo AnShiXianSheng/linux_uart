@@ -88,6 +88,9 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     if(config->mcu_firmware){
         config->mode = FUN_UPDATE;
     }
+    if(config->mcu_force_firmware){
+        config->mode = FUN_FORCE_UPDATE;
+    }
     
     return 0;
 }
@@ -99,7 +102,8 @@ int main(int argc, const char* argv[]){
         .is_read = 0, .is_write = 0,
         .test_cnt = 0,.wr_buf = {0},
         .reg_addr = 0x0000, .reg_cnt = 0, 
-        .mcu_firmware = NULL
+        .mcu_firmware = NULL,
+        .mcu_force_firmware = NULL
     };
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -108,6 +112,7 @@ int main(int argc, const char* argv[]){
         OPT_BOOLEAN('r', "read", &run_config.is_read, "读寄存器", NULL, 0, 0),
         OPT_BOOLEAN('i', "show-mcu-info", &run_config.is_show_mcu_info, "显示mcu所有信息", NULL, 0, 0),
         OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
+        OPT_STRING('U', "Update", &run_config.mcu_force_firmware, "强行升级固件", NULL, 0, 0),
         OPT_INTEGER('t', "test", &run_config.test_cnt, "测试模式", NULL, 0, 0),
         OPT_END(),
     };

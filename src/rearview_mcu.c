@@ -39,22 +39,8 @@ static RegWrCbHandle regWrCbHandle = {
     .write_reg = &RVMcu_WriteReg
 };
 
-int RVMcu_ReadReg(uint16_t reg_addr,  uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout){
-    return SpiReg_Read(&spiRegHandle, reg_addr, reg_cnt, reg_data, timeout);
-}
-
-int RVMcu_WriteReg(uint16_t reg_addr, const uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout){
-    return SpiReg_Write(&spiRegHandle, reg_addr, reg_cnt, reg_data, timeout);
-}
-
-
-/**
- * @brief 烧写MCU
- * @param  mcu_firmware_path    固件路径
- * @return int 
- */
-int RVMcu_BurnMcu(const char* mcu_firmware_path){
-#define BURN_WR_MAX_RETRY   10
+static int _BurnMcu(const char* mcu_firmware_path){
+#define BURN_WR_MAX_RETRY   5
 #define BURN_PARTICLE_SIZE          512
     BurnStaReg reg = {0};
     uint8_t *start,*end;
@@ -62,11 +48,25 @@ int RVMcu_BurnMcu(const char* mcu_firmware_path){
     int r_len,retry;
     static uint8_t firmware_data[BURN_PARTICLE_SIZE];
     int ret;
-    /* 假设已经到了bootloader */
-    reg.is_goto_burn_mode = 1;
     
-    ret = RVMcu_WriteReg(RWREG_BURN_START + offsetof(BurnStaReg, is_goto_burn_mode), 
-            &reg.is_goto_burn_mode , sizeof(reg.is_goto_burn_mode), 200);
+    reg.burn_mode = BURNMODE_START_ERASE;
+    ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 500);
+    if(ret < 0){
+        rvm_debug("启动擦除模式失败");
+        return ret;
+    }
+    usleep(50000);
+    ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 500);
+    if(ret < 0){
+        rvm_debug("读烧写寄存器失败 %d", ret);
+        return ret;
+    }
+    if(reg.burn_mode != BURNMODE_ERASE_OK){
+        rvm_debug("擦除失败... error code", reg.error_code);
+        return -reg.error_code;
+    }
+    reg.burn_mode = BURNMODE_START_BURN;
+    ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 500);
     if(ret < 0){
         rvm_debug("启动烧写模式失败");
         return ret;
@@ -88,36 +88,130 @@ int RVMcu_BurnMcu(const char* mcu_firmware_path){
         retry = 0;
         while(start < end){
             ret = RegWrCb_Write(&regWrCbHandle, RWREG_CB_BURN_START, start, end-start, 200);
-            if(ret >= 0){
+            if(ret > 0){
                 start += ret;
                 continue;
             }
-            if(retry++ > BURN_WR_MAX_RETRY*2){
+            if(ret == 0){
+                ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 500);
+                if(ret < 0)
+                    goto burn_out;
+                if(reg.burn_mode == BURNMODE_BURN_ERROR){
+                    ret = -reg.error_code;
+                    rvm_debug("烧写失败 %d", ret);
+                    goto burn_out;
+                }
+            }
+            if(retry++ > BURN_WR_MAX_RETRY){
                 rvm_debug("打开烧写错误");
-                goto burn_error;
+                goto burn_out;
             }
         }
     }
 
-    reg.is_goto_burn_mode = 2;
+    reg.burn_mode = BURNMODE_FINISH_TRANSFER;
     reg.error_code = 0;
-    ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(BurnStaReg), 200);
-    if(ret < 0){
-        rvm_debug("结束烧写时写寄存器失败");
-        return ret;
+    RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 500);
+
+    /* mcu 会校验结果 */
+    while(1){
+        ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 500);
+        if(ret < 0){
+            rvm_debug("读烧写寄存器失败 %d", ret);
+            goto burn_out;
+        }
+        if(reg.burn_mode != BURNMODE_FINISH_TRANSFER){
+            //rvm_debug("烧写完成 %d", reg.error_code);
+            ret = -reg.error_code;
+            break;
+        }
+        usleep(2000);
     }
-    ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(BurnStaReg), 200);
-    if(ret < 0){
-        rvm_debug("结束烧写时读寄存器失败");
-        return ret;
-    }
-    if(reg.is_goto_burn_mode == 3 && reg.error_code == 0)
-        return 0;
-    rvm_debug("烧写失败: errcode:%d", reg.error_code);
-    return -reg.error_code;
-burn_error:
+
+    if(ret < 0)
+        goto burn_out;
+    reg.burn_mode = BURNMODE_EXIT_BURN;
+    RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 200);
+burn_out:
     close(firmware_fd);
     return ret;
+}
+
+int RVMcu_ReadReg(uint16_t reg_addr,  uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout){
+    return SpiReg_Read(&spiRegHandle, reg_addr, reg_cnt, reg_data, timeout);
+}
+
+int RVMcu_WriteReg(uint16_t reg_addr, const uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout){
+    return SpiReg_Write(&spiRegHandle, reg_addr, reg_cnt, reg_data, timeout);
+}
+
+
+
+
+
+/**
+ * @brief 烧写MCU
+ * @param  mcu_firmware_path    固件路径
+ * @return int 
+ */
+int RVMcu_BurnMcu(const char* mcu_firmware_path){
+
+    BurnStaReg reg = {0};
+    McuInfo    info;
+    int ret;
+
+    ret = RVMcu_ReadReg(ROREG_INFO_START, (uint8_t *)&info, sizeof(info), 200);
+    if(ret < 0){
+        rvm_debug("读INFO寄存器失败 %d", ret);
+        return ret;
+    }
+
+    if(info.partition == 1){
+        /* 告诉APP进入BOOTLOADER模式 */
+        reg.burn_mode = BURNMODE_APP_GOTO_BOOTLOADER;
+        ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 200);
+        if(ret < 0){
+            rvm_debug("启动烧写模式失败");
+            return ret;
+        }
+        usleep(10000);
+    }
+
+    ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 500);
+    if(ret < 0){
+        rvm_debug("读烧写寄存器失败 %d", ret);
+        return ret;
+    }
+    if(reg.burn_mode != BURNMODE_WAIT_BURN){
+        rvm_debug("MCU不在烧写模式或者忙");
+        return -1;
+    }
+    return _BurnMcu(mcu_firmware_path);
+    return ret;
+}
+
+/**
+ * @brief  强行烧写MCU
+ * @param  mcu_firmware_path    固件路径
+ * @return int 
+ */
+int RVMcu_ForceBurnMcu(const char* mcu_firmware_path){
+
+    BurnStaReg reg = {0};
+    McuInfo    info;
+    int ret;
+    while(1){
+        ret = RVMcu_ReadReg(ROREG_INFO_START, (uint8_t *)&info, sizeof(info), 10);
+        if(ret == 0 && info.partition == 0 ) break;
+    }
+
+    reg.burn_mode = BURNMODE_START_ERASE;
+    while(1){
+        ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 10);
+        if(ret == 0) break;
+    }
+
+    return _BurnMcu(mcu_firmware_path);
 }
 
 

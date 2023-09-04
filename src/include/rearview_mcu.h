@@ -26,6 +26,7 @@ extern "C"{
 extern int RVMcu_WriteReg(uint16_t reg_addr, const uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout);
 extern int RVMcu_ReadReg(uint16_t reg_addr,  uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout);
 extern int RVMcu_BurnMcu(const char* mcu_firmware_path);
+extern int RVMcu_ForceBurnMcu(const char* mcu_firmware_path);
 extern int RVMcu_Init(void);
 extern void RVMcu_Exit(void);
 

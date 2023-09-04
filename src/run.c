@@ -107,6 +107,8 @@ int  run(RunConfig *config){
         return fun_show_mcu_info(config);
     }else if(config->mode == FUN_UPDATE){
         return RVMcu_BurnMcu(config->mcu_firmware);
+    }else if(config->mode == FUN_FORCE_UPDATE){ 
+        return RVMcu_ForceBurnMcu(config->mcu_force_firmware);
     }
 
     return 0;
