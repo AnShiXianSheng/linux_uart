@@ -174,7 +174,7 @@ int RVMcu_BurnMcu(const char* mcu_firmware_path){
             rvm_debug("启动烧写模式失败");
             return ret;
         }
-        usleep(10000);
+        usleep(50000);
     }
 
     ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 500);
@@ -220,5 +220,5 @@ int RVMcu_Init(void){
 }
 
 void RVMcu_Exit(void){
-     SpiReg_Exit(&spiRegHandle);
+    SpiReg_Exit(&spiRegHandle);
 }

@@ -25,7 +25,17 @@ extern "C"{
 #define ROREG_INFO_START                0x0000
 #define RWREG_INFO_START                0x1000
 #define MCU_INFO_SN_SIZE                32
-#define MCU_INFO_SOFTWARE_MODEL_SIZE    32
+#define MCU_INFO_SOFTWARE_MODEL_SIZE    48
+
+typedef enum _BurnFlashPart{
+    BFP_BOOT,               /* boot程序所在分区 */
+    BFP_APP_A,              /* app分区A */
+    BFP_APP_B,              /* app分区B */
+    BFP_BOOT_INFO,          /* 启动信息分区 */
+    BFP_CONST_INFO,          /* 固定信息，理论上只能写一次 */
+    BFP_MAX
+}BurnFlashPart;
+
 
 #pragma pack(1)
 typedef struct _McuInfo{
@@ -36,7 +46,7 @@ typedef struct _McuInfo{
         uint8_t reserved;
     }software_version;
     char        sn[MCU_INFO_SN_SIZE];
-    uint32_t    partition;  /* 当前分区 0：bootloader 1:app */
+    uint32_t    partition;  /* BurnFlashPart宏的定义 */
     char        software_model[MCU_INFO_SOFTWARE_MODEL_SIZE];
 }McuInfo;
 
