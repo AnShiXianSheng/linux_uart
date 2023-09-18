@@ -71,8 +71,9 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
                 return -1;
             }
         }else{
-            config->reg_cnt = hex_string_to_byte_array(argv[1], config->wr_buf, WR_BUF_MAX);
-            if(config->reg_cnt < 0){
+            int reg_cnt =hex_string_to_byte_array(argv[1], config->wr_buf, WR_BUF_MAX);
+            config->reg_cnt = (uint32_t)reg_cnt;
+            if(reg_cnt < 0){
                 dbg_inforaw("ERROR: 请勿超过%d个字节,请勿出现奇数个16进制!!\n",WR_BUF_MAX-2);
                 return -1;
             }
@@ -91,6 +92,9 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     if(config->mcu_force_firmware){
         config->mode = FUN_FORCE_UPDATE;
     }
+    if(config->is_read_can_event){
+        config->mode = FUN_READ_CAN_EVENT;
+    }
     
     return 0;
 }
@@ -101,6 +105,7 @@ int main(int argc, const char* argv[]){
     RunConfig  run_config = {
         .is_read = 0, .is_write = 0,
         .test_cnt = 0,.wr_buf = {0},
+        .is_read_can_event = 0,
         .reg_addr = 0x0000, .reg_cnt = 0, 
         .mcu_firmware = NULL,
         .mcu_force_firmware = NULL
@@ -110,6 +115,7 @@ int main(int argc, const char* argv[]){
         OPT_GROUP("基本命令"),
         OPT_BOOLEAN('w', "write", &run_config.is_write, "写寄存器", NULL, 0, 0),
         OPT_BOOLEAN('r', "read", &run_config.is_read, "读寄存器", NULL, 0, 0),
+        OPT_BOOLEAN('c', "read-can-event", &run_config.is_read_can_event, "读所有CAN事件", NULL, 0, 0),
         OPT_BOOLEAN('i', "show-mcu-info", &run_config.is_show_mcu_info, "显示mcu所有信息", NULL, 0, 0),
         OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
         OPT_STRING('U', "Update", &run_config.mcu_force_firmware, "强行升级固件", NULL, 0, 0),

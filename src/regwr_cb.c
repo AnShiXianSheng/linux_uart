@@ -126,7 +126,7 @@ int RegWrCb_ReadAir(RegWrCbHandle *h, uint16_t cb_addr, uint32_t read_size, uint
     ret = RegWrCb_Size(h, cb_addr, timeout);
     if(ret < 0) return ret;
     if(ret == 0) return 0;
-    r_len = r_len > ret ? ret : r_len;
+    r_len = r_len > (uint32_t)ret ? (uint32_t)ret : r_len;
     ret = h->write_reg(cb_addr+CBREG_CMD_READAIR, (uint8_t *)&r_len, 4, timeout);
     if(ret < 0) return ret;
     return r_len;

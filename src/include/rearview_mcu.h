@@ -16,7 +16,7 @@
 #include "stdint.h"
 #include "mcu-reg/mcu-info.h"
 #include "mcu-reg/mpu-burn-mcu.h"
-
+#include "mcu-reg/can-event.h"
 #ifdef __cplusplus
 #if __cplusplus
 extern "C"{

@@ -27,6 +27,7 @@ enum RUN_FUN{
     FUN_SHOW_MCU_INFO,
     FUN_UPDATE,
     FUN_FORCE_UPDATE,
+    FUN_READ_CAN_EVENT,
 };
 
 typedef struct _RunConfig{
@@ -37,6 +38,7 @@ typedef struct _RunConfig{
     int           is_write;
     int           is_show_mcu_info;
     int           is_read;
+    int           is_read_can_event;
     char          *mcu_firmware;
     char          *mcu_force_firmware;
     enum RUN_FUN  mode;
