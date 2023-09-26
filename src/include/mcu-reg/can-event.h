@@ -35,6 +35,32 @@ typedef enum _CAN_EVENT_TYPE{
     CET_MCU_STATE_MACHINE,              /* 状态机事件  指示状态机目前状态*/
     CET_CAN_BUS_VALID,                  /* CAN有效状态事件   0为CAN完全失效 */
     CET_OTHER_WAKE_UP_SOURCES_CNT,      /* 其他唤醒源唤醒计次 状态机若检测到计次增加则需要进行唤醒到 CIPE_MPU_RUN_NORMAL，然后根据当前状态自动过渡 */
+
+    CET_CAN_BUS_DCM_VALID,              /* CAN 门窗控制器有效标识 0为门窗控制器CAN无效 */
+    CET_CAN_BUS_GW_VALID,               /* CAN GW控制器有效标识 0为GW控制器CAN无效 */
+
+    CET_VEHICLE_SPEED_U16_L,            /* 车速 uint16_t 类型L 0-500 km/h */
+    CET_VEHICLE_SPEED_U16_H,            /* 车速 uint16_t 类型H  */
+
+    CET_TURN_SPEED_U16_L,               /* 发动机转速 uint16_t 类型L 0-10000 rpm */
+    CET_TURN_SPEED_U16_H,               /* 发动机转速 uint16_t 类型H  */
+
+    CET_TIME_SEC,                       /* 秒 0-59 s */
+    CET_TIME_MIN,                       /* 分 0-59 m */
+    CET_TIME_HOUR,                      /* 时 0-23 h */
+    CET_TIME_DAY,                       /* 日 1-31 D */
+    CET_TIME_MONTH,                     /* 月 1-12 D */
+    CET_TIME_YEAR,                      /* 年 0-255 offset: 1985-2240年   */
+
+    CET_DC_VOL_U16_L,                   /* 电源电压低位 0-65535   0.1v/bit 0.0-6553.5 v*/
+    CET_DC_VOL_U16_H,                   /* 电源电压高位 */
+
+    CET_ROAD_HAUL_U32_BYTE0,           /* 行驶里程数 使用 u32的值乘5米，就是最终的里程数*/
+    CET_ROAD_HAUL_U32_BYTE1,           /* 行驶里程数 */
+    CET_ROAD_HAUL_U32_BYTE2,           /* 行驶里程数 */
+    CET_ROAD_HAUL_U32_BYTE3,           /* 行驶里程数 */
+
+
     CET_MAX,
 }CAN_EVENT_TYPE;
 

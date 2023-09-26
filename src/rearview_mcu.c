@@ -166,7 +166,7 @@ int RVMcu_BurnMcu(const char* mcu_firmware_path){
         return ret;
     }
 
-    if(info.partition == 1){
+    if(info.partition != 0){
         /* 告诉APP进入BOOTLOADER模式 */
         reg.burn_mode = BURNMODE_APP_GOTO_BOOTLOADER;
         ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 200);
@@ -174,7 +174,7 @@ int RVMcu_BurnMcu(const char* mcu_firmware_path){
             rvm_debug("启动烧写模式失败");
             return ret;
         }
-        usleep(50000);
+        usleep(100000);
     }
 
     ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 500);
@@ -187,7 +187,6 @@ int RVMcu_BurnMcu(const char* mcu_firmware_path){
         return -1;
     }
     return _BurnMcu(mcu_firmware_path);
-    return ret;
 }
 
 /**

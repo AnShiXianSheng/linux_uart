@@ -90,7 +90,8 @@ static int fun_show_mcu_info(RunConfig *config){
         dbg_errfl("SpiReg_Read error! ret = %d",ret);
         return -1;
     }
-    dbg_inforaw("mcu mode: %s\n",mcu_info->partition == 0? "bootloader":"app");
+    dbg_inforaw("mcu mode: %s\n", mcu_info->partition == 0? "bootloader":
+                                  mcu_info->partition == 1? "app_A": "app_B"       );
     dbg_inforaw("mcu sn: %s\n",mcu_info->sn);
     dbg_inforaw("mcu software model: %s\n",mcu_info->software_model);
     dbg_inforaw("mcu ver: V%d.%d.%d\n", mcu_info->software_version.major,
@@ -144,14 +145,57 @@ static int fun_show_mcu_can_event(RunConfig *config){
                                         can_event.event[CET_MCU_STATE_MACHINE] == CIPE_MPU_RUN_FORCE_WAIT_SCREEN_OFF ? "强制等待关屏状态 120S倒计时":
                                         "错误状态");
     
-    
-    
     if(Get_Bit(can_event.period_event_valid, CET_CAN_BUS_VALID))
         dbg_infoln("CAN有效: %s", can_event.event[CET_CAN_BUS_VALID] ? "有效":"无效");
 
     if(Get_Bit(can_event.period_event_valid, CET_OTHER_WAKE_UP_SOURCES_CNT))
         dbg_infoln("其他唤醒源唤醒次数: %d", can_event.event[CET_OTHER_WAKE_UP_SOURCES_CNT]);
+    
+    if(Get_Bit(can_event.period_event_valid, CET_CAN_BUS_DCM_VALID))
+        dbg_infoln("门窗控制器有效: %s", can_event.event[CET_CAN_BUS_DCM_VALID] ? "有效":"无效");
 
+    
+    if(Get_Bit(can_event.period_event_valid, CET_CAN_BUS_GW_VALID))
+        dbg_infoln("网关有效: %s", can_event.event[CET_CAN_BUS_GW_VALID] ? "有效":"无效");
+
+    if(Get_Bit(can_event.period_event_valid, CET_VEHICLE_SPEED_U16_L) &&
+       Get_Bit(can_event.period_event_valid, CET_VEHICLE_SPEED_U16_H))
+        dbg_infoln("车速: %d km/h", can_event.event[CET_VEHICLE_SPEED_U16_L] | (can_event.event[CET_VEHICLE_SPEED_U16_H] << 8));
+
+    if(Get_Bit(can_event.period_event_valid, CET_TURN_SPEED_U16_L) &&
+       Get_Bit(can_event.period_event_valid, CET_TURN_SPEED_U16_H))
+        dbg_infoln("发动机转速: %d rpm", can_event.event[CET_TURN_SPEED_U16_L] | (can_event.event[CET_TURN_SPEED_U16_H] << 8));
+
+    if( Get_Bit(can_event.period_event_valid, CET_TIME_SEC) || 
+        Get_Bit(can_event.period_event_valid, CET_TIME_MIN) || 
+        Get_Bit(can_event.period_event_valid, CET_TIME_HOUR) || 
+        Get_Bit(can_event.period_event_valid, CET_TIME_DAY) || 
+        Get_Bit(can_event.period_event_valid, CET_TIME_MONTH) || 
+        Get_Bit(can_event.period_event_valid, CET_TIME_YEAR)    ){
+        
+        dbg_infoln("时间: %02d/%02d/%02d %02d:%02d:%02d", can_event.event[CET_TIME_YEAR] + 1985,
+                        can_event.event[CET_TIME_MONTH], can_event.event[CET_TIME_DAY], can_event.event[CET_TIME_HOUR],
+                        can_event.event[CET_TIME_MIN], can_event.event[CET_TIME_SEC] );
+    }
+
+    if( Get_Bit(can_event.period_event_valid, CET_DC_VOL_U16_L) || 
+        Get_Bit(can_event.period_event_valid, CET_DC_VOL_U16_H) ){
+        dbg_infoln("电源电压: %.1fv", (can_event.event[CET_DC_VOL_U16_L] | (can_event.event[CET_DC_VOL_U16_H] << 8))*0.1 );
+    }
+
+    if( Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE0) || 
+        Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE1) || 
+        Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE2) || 
+        Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE3) ){
+        uint32_t rh_u32;
+        uint64_t rh_u64;
+        rh_u32 =    can_event.event[CET_ROAD_HAUL_U32_BYTE0]             | 
+                    (can_event.event[CET_ROAD_HAUL_U32_BYTE1]  <<  8)    | 
+                    (can_event.event[CET_ROAD_HAUL_U32_BYTE2]  << 16)    | 
+                    (can_event.event[CET_ROAD_HAUL_U32_BYTE3]  << 24) ;
+        rh_u64 = rh_u32*5;
+        dbg_infoln("总里程: %llu", rh_u64 );
+    }
 
     return 0;
 }
@@ -159,13 +203,15 @@ static int fun_show_mcu_can_event(RunConfig *config){
 
 
 int  run(RunConfig *config){
-
+    int ret;
     if(config->mode == FUN_RW){
         return fun_wr(config);
     }else if(config->mode == FUN_SHOW_MCU_INFO){
         return fun_show_mcu_info(config);
     }else if(config->mode == FUN_UPDATE){
-        return RVMcu_BurnMcu(config->mcu_firmware);
+        ret = RVMcu_BurnMcu(config->mcu_firmware);
+        if(ret < 0) dbg_errfl("烧写失败!");
+        return ret;
     }else if(config->mode == FUN_FORCE_UPDATE){ 
         return RVMcu_ForceBurnMcu(config->mcu_force_firmware);
     }else if(config->mode == FUN_READ_CAN_EVENT){
