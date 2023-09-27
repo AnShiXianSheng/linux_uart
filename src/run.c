@@ -111,22 +111,22 @@ static int fun_show_mcu_can_event(RunConfig *config){
         return -1;
     }
     if(Get_Bit(can_event.period_event_valid, CET_IGNITION_POSITION))
-        dbg_infoln("点火位置： %s", can_event.event[CET_IGNITION_POSITION] == CIPE_OFF ?     "CIPE_OFF":
-                                   can_event.event[CET_IGNITION_POSITION] == CIPE_ACC ?     "CIPE_ACC":
-                                   can_event.event[CET_IGNITION_POSITION] == CIPE_ON ?      "CIPE_ON":
-                                   can_event.event[CET_IGNITION_POSITION] == CIPE_START ?   "CIPE_START": "ERR" );
+        dbg_infoln("点火位置： %s", can_event.event[CET_IGNITION_POSITION] == CIPE_OFF ?     "OFF":
+                                   can_event.event[CET_IGNITION_POSITION] == CIPE_ACC ?     "ACC":
+                                   can_event.event[CET_IGNITION_POSITION] == CIPE_ON ?      "ON":
+                                   can_event.event[CET_IGNITION_POSITION] == CIPE_START ?   "START": "ERR" );
 
     if(Get_Bit(can_event.period_event_valid, CET_LEFT_DOOR_SWITCH))
-        dbg_infoln("左门状态： %s", can_event.event[CET_LEFT_DOOR_SWITCH] == CDSE_DOOR_OFF ?     "CDSE_DOOR_OFF": "CDSE_DOOR_ON");
+        dbg_infoln("左门状态： %s", can_event.event[CET_LEFT_DOOR_SWITCH] == CDSE_DOOR_OFF ?     "门关": "门开");
     
     if(Get_Bit(can_event.period_event_valid, CET_LEFT_DOOR_LOCK))
-        dbg_infoln("左门锁状态： %s", can_event.event[CET_LEFT_DOOR_LOCK] == CDLE_DOOR_UNLOCK ?     "CDLE_DOOR_UNLOCK": "CDLE_DOOR_LOCK");
+        dbg_infoln("左门锁状态： %s", can_event.event[CET_LEFT_DOOR_LOCK] == CDLE_DOOR_UNLOCK ?     "门解锁": "门已锁");
     
     if(Get_Bit(can_event.period_event_valid, CET_RIGHT_DOOR_SWITCH))
-        dbg_infoln("右门状态： %s", can_event.event[CET_RIGHT_DOOR_SWITCH] == CDSE_DOOR_OFF ?     "CDSE_DOOR_OFF": "CDSE_DOOR_ON");
+        dbg_infoln("右门状态： %s", can_event.event[CET_RIGHT_DOOR_SWITCH] == CDSE_DOOR_OFF ?     "门关": "门开");
     
     if(Get_Bit(can_event.period_event_valid, CET_RIGHT_DOOR_LOCK))
-        dbg_infoln("右门锁状态： %s", can_event.event[CET_RIGHT_DOOR_LOCK] == CDLE_DOOR_UNLOCK ?     "CDLE_DOOR_UNLOCK": "CDLE_DOOR_LOCK");
+        dbg_infoln("右门锁状态： %s", can_event.event[CET_RIGHT_DOOR_LOCK] == CDLE_DOOR_UNLOCK ?     "门解锁": "门已锁");
 
     
     if(Get_Bit(can_event.period_event_valid, CET_ACC_PIN_H))
@@ -195,6 +195,40 @@ static int fun_show_mcu_can_event(RunConfig *config){
                     (can_event.event[CET_ROAD_HAUL_U32_BYTE3]  << 24) ;
         rh_u64 = rh_u32*5;
         dbg_infoln("总里程: %llu", rh_u64 );
+    }
+
+    if(Get_Bit(can_event.period_event_valid, CET_REARVIEW_SELECT)){
+        dbg_infoln("后视镜选择: %s", can_event.event[CET_REARVIEW_SELECT] == CRS_NONE ? "未选中任何后视镜": 
+                                    can_event.event[CET_REARVIEW_SELECT] == CRS_LEFT ? "选择左镜": 
+                                    can_event.event[CET_REARVIEW_SELECT] == CRS_RIGHT ? "选择右镜": "全部选中"
+                                    );
+    }
+
+    
+    if(Get_Bit(can_event.period_event_valid, CET_REARVIEW_VERTICAL_ADJUSTMENT)){
+        dbg_infoln("垂直调节: %s",  can_event.event[CET_REARVIEW_VERTICAL_ADJUSTMENT] == CRVA_NONE ? "不调节": 
+                                    can_event.event[CET_REARVIEW_VERTICAL_ADJUSTMENT] == CRVA_UP_ADJUSTMENT ? "上调": "下调"
+                                    );
+    }
+
+    if(Get_Bit(can_event.period_event_valid, CET_REARVIEW_HORIZONTAL_ADJUSTMENT)){
+        dbg_infoln("水平调节: %s",   can_event.event[CET_REARVIEW_HORIZONTAL_ADJUSTMENT] == CRHA_NONE ? "不调节": 
+                                    can_event.event[CET_REARVIEW_HORIZONTAL_ADJUSTMENT] == CRHA_LEFT_ADJUSTMENT ? "左调": "右调"
+                                    );
+    }
+
+    if(Get_Bit(can_event.period_event_valid, CET_REVERSE_LIGHT)){
+        dbg_infoln("倒车灯: %s",    can_event.event[CET_REVERSE_LIGHT] == CRLE_OFF ? "灯灭": "灯亮");
+    }
+
+    if(Get_Bit(can_event.period_event_valid, CET_LEFT_TURN_LIGHT)){
+        dbg_infoln("左转灯: %s",    can_event.event[CET_LEFT_TURN_LIGHT] == CLTLE_OFF ? "灯灭": 
+                                    can_event.event[CET_LEFT_TURN_LIGHT] == CLTLE_NORMAL_BLINK ? "正常闪烁":"快速闪烁");
+    }
+
+    if(Get_Bit(can_event.period_event_valid, CET_RIGHT_TURN_LIGHT)){
+        dbg_infoln("右转灯: %s",    can_event.event[CET_RIGHT_TURN_LIGHT] == CLTLE_OFF ? "灯灭": 
+                                    can_event.event[CET_RIGHT_TURN_LIGHT] == CLTLE_NORMAL_BLINK ? "正常闪烁":"快速闪烁");
     }
 
     return 0;
