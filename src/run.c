@@ -103,13 +103,28 @@ static int fun_show_mcu_info(RunConfig *config){
 
 static int fun_show_mcu_can_event(RunConfig *config){
     int ret;
+    int i;
+    int valid_max_event = 0;
+    RoRegCanEvent can_event = {0};
     (void) config;
-    RoRegCanEvent can_event;
-    ret = RVMcu_ReadReg(ROREG_CAN_EVENT_START, (uint8_t*)&can_event, sizeof(can_event), 200);
+    
+    ret = RVMcu_ReadReg(ROREG_CAN_EVENT_START, (uint8_t*)&can_event, sizeof(can_event.period_event_valid), 200);
     if(ret < 0){
         dbg_errfl("SpiReg_Read error! ret = %d",ret);
         return -1;
     }
+
+    for(i=0;i<CAN_EVENT_USE_CNT;i++){
+        if(Get_Bit(can_event.period_event_valid, i))
+            valid_max_event = i;
+    }
+    if(valid_max_event == 0) return 0;
+    ret = RVMcu_ReadReg(ROREG_CAN_EVENT_START+ sizeof(can_event.period_event_valid), (uint8_t*)can_event.event, valid_max_event+1, 200);
+    if(ret < 0){
+        dbg_errfl("SpiReg_Read error! ret = %d",ret);
+        return -1;
+    }
+
     if(Get_Bit(can_event.period_event_valid, CET_IGNITION_POSITION))
         dbg_infoln("点火位置： %s", can_event.event[CET_IGNITION_POSITION] == CIPE_OFF ?     "OFF":
                                    can_event.event[CET_IGNITION_POSITION] == CIPE_ACC ?     "ACC":
