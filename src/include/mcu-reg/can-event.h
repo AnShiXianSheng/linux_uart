@@ -74,6 +74,14 @@ typedef enum _CAN_EVENT_TYPE{
     CET_R3_LIGHT,                           /* 预留灯 */
     CET_R4_LIGHT,                           /* 预留灯 */
 
+    CET_STEERING_ANGLE_I16_L,               /* 方向盘角度 -32767 --> 32767 */
+    CET_STEERING_ANGLE_I16_H,               /* 方向盘角度 */
+
+    CET_ENGINE_RUN_TIME_U32_BYTE0,          /* 发动机 运行时间单位秒 */
+    CET_ENGINE_RUN_TIME_U32_BYTE1,          /* 发动机 运行时间单位秒 */
+    CET_ENGINE_RUN_TIME_U32_BYTE2,          /* 发动机 运行时间单位秒 */
+    CET_ENGINE_RUN_TIME_U32_BYTE3,          /* 发动机 运行时间单位秒 */
+    
     CET_MAX,
 }CAN_EVENT_TYPE;
 

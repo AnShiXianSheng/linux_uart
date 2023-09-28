@@ -13,6 +13,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stddef.h>
+#include <unistd.h>
 
 #include "bits.h"
 #include "mcu-reg/can-event.h"
@@ -132,13 +134,13 @@ static int fun_show_mcu_can_event(RunConfig *config){
                                    can_event.event[CET_IGNITION_POSITION] == CIPE_START ?   "START": "ERR" );
 
     if(Get_Bit(can_event.period_event_valid, CET_LEFT_DOOR_SWITCH))
-        dbg_infoln("左门状态： %s", can_event.event[CET_LEFT_DOOR_SWITCH] == CDSE_DOOR_OFF ?     "门关": "门开");
+        dbg_infoln("左门状态：  %s", can_event.event[CET_LEFT_DOOR_SWITCH] == CDSE_DOOR_OFF ?     "门关": "门开");
     
     if(Get_Bit(can_event.period_event_valid, CET_LEFT_DOOR_LOCK))
         dbg_infoln("左门锁状态： %s", can_event.event[CET_LEFT_DOOR_LOCK] == CDLE_DOOR_UNLOCK ?     "门解锁": "门已锁");
     
     if(Get_Bit(can_event.period_event_valid, CET_RIGHT_DOOR_SWITCH))
-        dbg_infoln("右门状态： %s", can_event.event[CET_RIGHT_DOOR_SWITCH] == CDSE_DOOR_OFF ?     "门关": "门开");
+        dbg_infoln("右门状态：  %s", can_event.event[CET_RIGHT_DOOR_SWITCH] == CDSE_DOOR_OFF ?     "门关": "门开");
     
     if(Get_Bit(can_event.period_event_valid, CET_RIGHT_DOOR_LOCK))
         dbg_infoln("右门锁状态： %s", can_event.event[CET_RIGHT_DOOR_LOCK] == CDLE_DOOR_UNLOCK ?     "门解锁": "门已锁");
@@ -161,17 +163,17 @@ static int fun_show_mcu_can_event(RunConfig *config){
                                         "错误状态");
     
     if(Get_Bit(can_event.period_event_valid, CET_CAN_BUS_VALID))
-        dbg_infoln("CAN有效: %s", can_event.event[CET_CAN_BUS_VALID] ? "有效":"无效");
+        dbg_infoln("CAN: %s", can_event.event[CET_CAN_BUS_VALID] ? "有效":"无效");
 
     if(Get_Bit(can_event.period_event_valid, CET_OTHER_WAKE_UP_SOURCES_CNT))
         dbg_infoln("其他唤醒源唤醒次数: %d", can_event.event[CET_OTHER_WAKE_UP_SOURCES_CNT]);
     
     if(Get_Bit(can_event.period_event_valid, CET_CAN_BUS_DCM_VALID))
-        dbg_infoln("门窗控制器有效: %s", can_event.event[CET_CAN_BUS_DCM_VALID] ? "有效":"无效");
+        dbg_infoln("门窗控制器: %s", can_event.event[CET_CAN_BUS_DCM_VALID] ? "有效":"无效");
 
     
     if(Get_Bit(can_event.period_event_valid, CET_CAN_BUS_GW_VALID))
-        dbg_infoln("网关有效: %s", can_event.event[CET_CAN_BUS_GW_VALID] ? "有效":"无效");
+        dbg_infoln("网关: %s", can_event.event[CET_CAN_BUS_GW_VALID] ? "有效":"无效");
 
     if(Get_Bit(can_event.period_event_valid, CET_VEHICLE_SPEED_U16_L) &&
        Get_Bit(can_event.period_event_valid, CET_VEHICLE_SPEED_U16_H))
@@ -246,9 +248,93 @@ static int fun_show_mcu_can_event(RunConfig *config){
                                     can_event.event[CET_RIGHT_TURN_LIGHT] == CLTLE_NORMAL_BLINK ? "正常闪烁":"快速闪烁");
     }
 
+    if( Get_Bit(can_event.period_event_valid, CET_STEERING_ANGLE_I16_L) || 
+        Get_Bit(can_event.period_event_valid, CET_STEERING_ANGLE_I16_H) ){
+        dbg_infoln("方向盘角度: %d",    (int16_t)(can_event.event[CET_STEERING_ANGLE_I16_L] | (can_event.event[CET_STEERING_ANGLE_I16_H] << 8)) );
+    }
+    if( Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE0) || 
+        Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE1) ||
+        Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE2) ||
+        Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE3)    ){
+        uint32_t run_time_sec;
+        run_time_sec =  can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE0] |  (can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE1] << 8) |
+                        (can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE2] << 16) | (can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE3] << 24);
+        dbg_infoln("发动机运行时间: %.2fh",    run_time_sec/60.0/60.0 );
+    }
+
     return 0;
 }
 
+static int fun_set_or_clean_mpu_dtc(RunConfig *config){
+    int ret;
+    MpuBusinessReg mpuBusinessReg;
+    uint32_t dtc_map;
+    uint32_t dtc_map_mask = MPU_DTC_MAP_MASK;
+
+
+    if(config->set_dtc == config->clean_dtc)
+        return 0;
+    ret = RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START, 
+        (uint8_t*)&mpuBusinessReg, sizeof(mpuBusinessReg), 200);
+    dtc_map = mpuBusinessReg.dtc_map;
+    if(ret < 0){
+        dbg_errfl("SpiReg_Read error! ret = %d",ret);
+        return -1;
+    }
+    if(config->set_dtc && config->set_dtc <= 32 && Get_Bit(&dtc_map_mask, config->set_dtc-1)){
+        Set_Bit(&dtc_map, config->set_dtc-1, 1);
+    }
+    if(config->clean_dtc && config->clean_dtc <= 32 && Get_Bit(&dtc_map_mask, config->clean_dtc-1)){
+        Set_Bit(&dtc_map, config->clean_dtc-1, 0);
+    }
+    mpuBusinessReg.dtc_map = dtc_map;
+    mpuBusinessReg.mpu_online_cnt++;
+
+    /* 这一组的第一个寄存器尽量不要写 */
+    ret = RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + sizeof(mpuBusinessReg.is_allow_send), 
+        (uint8_t*)&mpuBusinessReg.mpu_online_cnt, sizeof(mpuBusinessReg)-sizeof(mpuBusinessReg.is_allow_send), 200);
+    if(ret < 0){
+        dbg_errfl("RVMcu_WriteReg error! ret = %d",ret);
+        return -1;
+    }
+    return 0;
+}
+
+static int fun_show_mpu_online(RunConfig *config){
+    uint8_t mpu_online_cnt = 0;
+    (void) config;
+    while(1){
+        mpu_online_cnt++;
+        usleep(100000);
+        RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_online_cnt) , &mpu_online_cnt, sizeof(mpu_online_cnt), 200);
+    }
+    return 0;
+}
+
+static int fun_show_mpu_dtc(RunConfig *config){
+    int ret;
+    uint32_t dtc_map;
+    uint32_t dtc_map_mask = MPU_DTC_MAP_MASK;
+    int i;
+    (void)config;
+
+    ret = RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, dtc_map), 
+        (uint8_t*)&dtc_map, sizeof(dtc_map), 200);
+    
+    if(ret < 0){
+        dbg_errfl("SpiReg_Read error! ret = %d",ret);
+        return -1;
+    }
+
+    dbg_inforaw("MPU DTC (只显示MPU可控故障):\r\n");
+    for(i = 0;i<12;i++){
+        if(Get_Bit(&dtc_map_mask, i)){
+            dbg_inforaw("DTC: %02d     %d\r\n", i+1, Get_Bit(&dtc_map, i));
+        }
+    }
+
+    return 0;
+}
 
 
 int  run(RunConfig *config){
@@ -265,7 +351,15 @@ int  run(RunConfig *config){
         return RVMcu_ForceBurnMcu(config->mcu_force_firmware);
     }else if(config->mode == FUN_READ_CAN_EVENT){
         return fun_show_mcu_can_event(config);
+    }else if(config->mode == FUN_LOOK_MPU_DTC){
+        return fun_show_mpu_dtc(config);
+    }else if(config->mode == FUN_SET_OR_CLEAN_MPU_DTC){
+        return fun_set_or_clean_mpu_dtc(config);
+    }else if(config->mode == FUN_MPU_ONLINE){
+        return fun_show_mpu_online(config);
     }
+
+
 
     return 0;
 }

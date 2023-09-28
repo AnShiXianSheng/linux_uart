@@ -23,11 +23,14 @@
 #define WR_BUF_MAX 1024
 
 enum RUN_FUN{
+    FUN_MPU_ONLINE, 
     FUN_RW,
     FUN_SHOW_MCU_INFO,
     FUN_UPDATE,
     FUN_FORCE_UPDATE,
     FUN_READ_CAN_EVENT,
+    FUN_LOOK_MPU_DTC,
+    FUN_SET_OR_CLEAN_MPU_DTC,
 };
 
 typedef struct _RunConfig{
@@ -35,8 +38,11 @@ typedef struct _RunConfig{
     uint16_t      reg_addr;
     uint16_t      reg_cnt;
     uint32_t      test_cnt;
+    uint32_t      set_dtc;
+    uint32_t      clean_dtc;
     int           is_write;
     int           is_show_mcu_info;
+    int           is_look_dtc;
     int           is_read;
     int           is_read_can_event;
     char          *mcu_firmware;

@@ -95,6 +95,12 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     if(config->is_read_can_event){
         config->mode = FUN_READ_CAN_EVENT;
     }
+    if(config->is_look_dtc){
+        config->mode = FUN_LOOK_MPU_DTC;
+    }
+    if(config->set_dtc || config->clean_dtc){
+        config->mode = FUN_SET_OR_CLEAN_MPU_DTC;
+    }
     
     return 0;
 }
@@ -108,7 +114,11 @@ int main(int argc, const char* argv[]){
         .is_read_can_event = 0,
         .reg_addr = 0x0000, .reg_cnt = 0, 
         .mcu_firmware = NULL,
-        .mcu_force_firmware = NULL
+        .mcu_force_firmware = NULL,
+        .set_dtc = 0,
+        .clean_dtc = 0,
+        .is_look_dtc = 0,
+        .mode = FUN_MPU_ONLINE
     };
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -117,9 +127,12 @@ int main(int argc, const char* argv[]){
         OPT_BOOLEAN('r', "read", &run_config.is_read, "读寄存器", NULL, 0, 0),
         OPT_BOOLEAN('c', "read-can-event", &run_config.is_read_can_event, "读所有CAN事件", NULL, 0, 0),
         OPT_BOOLEAN('i', "show-mcu-info", &run_config.is_show_mcu_info, "显示mcu所有信息", NULL, 0, 0),
+        OPT_BOOLEAN('l', "look-mpu-dtc", &run_config.is_look_dtc, "显示MPU故障", NULL, 0, 0),
         OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
         OPT_STRING('U', "Update", &run_config.mcu_force_firmware, "强行升级固件", NULL, 0, 0),
         OPT_INTEGER('t', "test", &run_config.test_cnt, "测试模式", NULL, 0, 0),
+        OPT_INTEGER('s', "set-mpu-dtc", &run_config.set_dtc, "设置MPU故障 1-12", NULL, 0, 0),
+        OPT_INTEGER('e', "clean-mpu-dtc", &run_config.clean_dtc, "清除MPU故障 1-12", NULL, 0, 0),
         OPT_END(),
     };
     debug_init();
