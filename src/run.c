@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "bits.h"
 #include "mcu-reg/can-event.h"
@@ -24,6 +25,7 @@
 #include "debug.h"
 #include "typedef.h"
 #include "rearview_mcu.h"
+
 
 static void make_data(uint8_t* wr_buf, uint16_t cnt ){
     int i;
@@ -44,9 +46,9 @@ static int _run_test(RunConfig *config){
         
         if(config->is_write){
             make_data(config->wr_buf, config->reg_cnt);
-            ret = RVMcu_WriteReg(config->reg_addr, config->wr_buf, config->reg_cnt, 400);
+            ret = RVMcu_WriteReg((uint16_t)config->reg_addr, config->wr_buf, config->reg_cnt, 400);
         }else{
-            ret = RVMcu_ReadReg(config->reg_addr, config->wr_buf, config->reg_cnt, 400);
+            ret = RVMcu_ReadReg((uint16_t)config->reg_addr, config->wr_buf, config->reg_cnt, 400);
         }
         if(ret < 0){
             dbg_infoln("第%d次测试:失败",i);
@@ -66,14 +68,14 @@ static int fun_wr(RunConfig *config){
         }
 
         if(config->is_write){
-            ret = RVMcu_WriteReg(config->reg_addr, config->wr_buf, config->reg_cnt, 400);
+            ret = RVMcu_WriteReg((uint16_t)config->reg_addr, config->wr_buf, config->reg_cnt, 400);
             if(ret < 0){
                 dbg_errfl("ERROR 写寄存器失败 ret = %d",ret);
                 return -1;
             }
             
         }else{
-            ret = RVMcu_ReadReg(config->reg_addr, config->wr_buf, config->reg_cnt, 400);
+            ret = RVMcu_ReadReg((uint16_t)config->reg_addr, config->wr_buf, config->reg_cnt, 400);
             if(ret < 0){
                 dbg_errfl("ERROR 读寄存器失败 ret = %d",ret);
                 return -1;
@@ -307,7 +309,6 @@ static int fun_show_mpu_online(RunConfig *config){
         mpu_online_cnt++;
         usleep(100000);
         RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_online_cnt) , &mpu_online_cnt, sizeof(mpu_online_cnt), 200);
-        dbg_infofl("simon debug");
     }
     return 0;
 }
@@ -337,6 +338,47 @@ static int fun_show_mpu_dtc(RunConfig *config){
     return 0;
 }
 
+static int fun_send_can_msg(RunConfig *config){
+    int ret;
+    PCanMsg can_msg = {0};
+    can_msg.can_id = config->reg_addr;
+    can_msg.can_len = config->reg_cnt > 8 ? 8 : config->reg_cnt;
+    memcpy(can_msg.can_data, config->wr_buf, can_msg.can_len);
+    ret = RVMcu_SendCanMsg(&can_msg, 200);
+    if(ret < 0){
+        dbg_errfl("RVMcu_SendCanMsg error! ret = %d",ret);
+    }
+    return ret;
+}
+
+
+static int fun_loop_receive_can_msg(RunConfig *config){
+    int ret,i;
+    (void) config;
+    PCanMsg can_msg[32] = {0};
+    PCanMsg *can_msg_p;
+    while(1){
+        /* spi单次多传输点优势大些 */
+        ret = RVMcu_ReceiveCanMsgBlock(can_msg, 32, 200);
+        if(ret < 0){
+            dbg_errfl("RVMcu_SendCanMsg error! ret = %d",ret);
+            break;
+        }
+        if(ret == 0){
+            usleep(50000);
+            continue;
+        }
+        /* 成功接收到 */
+        for(i=0;i<ret;i++){
+            can_msg_p = can_msg+i;
+            dbg_inforaw(" MCUCAN  %08x   [%d] %02x %02x %02x %02x %02x %02x %02x %02x  \r\n", can_msg_p->can_id, can_msg_p->can_len, 
+                    can_msg_p->can_data[0], can_msg_p->can_data[1], can_msg_p->can_data[2], can_msg_p->can_data[3],
+                    can_msg_p->can_data[4], can_msg_p->can_data[5], can_msg_p->can_data[6], can_msg_p->can_data[7] );
+        }
+    }
+
+    return ret;
+}
 
 int  run(RunConfig *config){
     int ret;
@@ -358,6 +400,10 @@ int  run(RunConfig *config){
         return fun_set_or_clean_mpu_dtc(config);
     }else if(config->mode == FUN_MPU_ONLINE){
         return fun_show_mpu_online(config);
+    }else if(config->mode == FUN_SEND_CAN_MSG){
+        return fun_send_can_msg(config);
+    }else if(config->mode == FUN_LOOP_RECEIVE_CAN_MSG){
+        return fun_loop_receive_can_msg(config);
     }
 
 

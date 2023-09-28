@@ -57,9 +57,9 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
         return -1;
 
 
-    if(config->is_write || config->is_read){
+    if(config->is_write || config->is_read || config->is_send_can){
         if(argc != 2) return -1;
-        config->reg_addr = strtol(argv[0], &endptr, 0);
+        config->reg_addr = strtoul(argv[0], &endptr, 0);
         if(argv[0] == endptr)
             return -1;
         
@@ -78,13 +78,13 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
                 return -1;
             }
         }
-        config->mode = FUN_RW;
-        return 0;
     }
-
     if(config->is_show_mcu_info){
         config->mode = FUN_SHOW_MCU_INFO;
         return 0;
+    }
+    if(config->is_write || config->is_read){
+        config->mode = FUN_RW;
     }
     if(config->mcu_firmware){
         config->mode = FUN_UPDATE;
@@ -100,6 +100,12 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     }
     if(config->set_dtc || config->clean_dtc){
         config->mode = FUN_SET_OR_CLEAN_MPU_DTC;
+    }
+    if(config->is_send_can){
+        config->mode = FUN_SEND_CAN_MSG;
+    }
+    if(config->is_loop_reveive){
+        config->mode = FUN_LOOP_RECEIVE_CAN_MSG;
     }
     
     return 0;
@@ -118,13 +124,17 @@ int main(int argc, const char* argv[]){
         .set_dtc = 0,
         .clean_dtc = 0,
         .is_look_dtc = 0,
-        .mode = FUN_MPU_ONLINE
+        .mode = FUN_MPU_ONLINE,
+        .is_send_can = 0,
+        .is_loop_reveive = 0,
     };
     struct argparse_option options[] = {
         OPT_HELP(),
         OPT_GROUP("基本命令"),
         OPT_BOOLEAN('w', "write", &run_config.is_write, "写寄存器", NULL, 0, 0),
         OPT_BOOLEAN('r', "read", &run_config.is_read, "读寄存器", NULL, 0, 0),
+        OPT_BOOLEAN('m', "send-can-msg", &run_config.is_send_can, "发送CAN报文", NULL, 0, 0),
+        OPT_BOOLEAN('d', "reveive-can-msg", &run_config.is_loop_reveive, "接收CAN报文", NULL, 0, 0),
         OPT_BOOLEAN('c', "read-can-event", &run_config.is_read_can_event, "读所有CAN事件", NULL, 0, 0),
         OPT_BOOLEAN('i', "show-mcu-info", &run_config.is_show_mcu_info, "显示mcu所有信息", NULL, 0, 0),
         OPT_BOOLEAN('l', "look-mpu-dtc", &run_config.is_look_dtc, "显示MPU故障", NULL, 0, 0),

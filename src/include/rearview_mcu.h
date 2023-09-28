@@ -18,12 +18,17 @@
 #include "mcu-reg/mpu-burn-mcu.h"
 #include "mcu-reg/can-event.h"
 #include "mcu-reg/mpu-business.h"
+#include "can-msg.h"
 #ifdef __cplusplus
 #if __cplusplus
 extern "C"{
 #endif
 #endif /* __cplusplus */
 
+
+extern int RVMcu_ReceiveCanMsgBlock(PCanMsg *can_msg, uint32_t cnt,  uint32_t timeout);
+extern int RVMcu_ReceiveCanMsg(PCanMsg *can_msg, uint32_t timeout);
+extern int RVMcu_SendCanMsg(PCanMsg *can_msg, uint32_t timeout);
 extern int RVMcu_WriteReg(uint16_t reg_addr, const uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout);
 extern int RVMcu_ReadReg(uint16_t reg_addr,  uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout);
 extern int RVMcu_BurnMcu(const char* mcu_firmware_path);

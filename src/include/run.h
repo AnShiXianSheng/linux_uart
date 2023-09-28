@@ -31,11 +31,13 @@ enum RUN_FUN{
     FUN_READ_CAN_EVENT,
     FUN_LOOK_MPU_DTC,
     FUN_SET_OR_CLEAN_MPU_DTC,
+    FUN_SEND_CAN_MSG,
+    FUN_LOOP_RECEIVE_CAN_MSG,
 };
 
 typedef struct _RunConfig{
     uint8_t       wr_buf[WR_BUF_MAX];
-    uint16_t      reg_addr;
+    uint32_t      reg_addr;            /* 当发送can报文时为CAN ID */
     uint16_t      reg_cnt;
     uint32_t      test_cnt;
     uint32_t      set_dtc;
@@ -43,7 +45,9 @@ typedef struct _RunConfig{
     int           is_write;
     int           is_show_mcu_info;
     int           is_look_dtc;
+    int           is_loop_reveive;
     int           is_read;
+    int           is_send_can;
     int           is_read_can_event;
     char          *mcu_firmware;
     char          *mcu_force_firmware;

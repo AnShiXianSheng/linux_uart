@@ -25,6 +25,7 @@
 
 #include "rearview_mcu.h"
 #include "typedef.h"
+#include "can-msg.h"
 
 #define rvm_debug(s, ...)          dbg_errfl(s, ##__VA_ARGS__)
 
@@ -141,12 +142,55 @@ int RVMcu_ReadReg(uint16_t reg_addr,  uint8_t *reg_data, uint16_t reg_cnt, uint3
     return SpiReg_Read(&spiRegHandle, reg_addr, reg_cnt, reg_data, timeout);
 }
 
+/**
+ * @brief  写MCU寄存器
+ * @param  reg_addr         寄存器地址
+ * @param  reg_data         寄存器数据
+ * @param  reg_cnt          寄存器数量
+ * @param  timeout          通信超时时间
+ * @return int 
+ */
 int RVMcu_WriteReg(uint16_t reg_addr, const uint8_t *reg_data, uint16_t reg_cnt, uint32_t timeout){
     return SpiReg_Write(&spiRegHandle, reg_addr, reg_cnt, reg_data, timeout);
 }
 
+/**
+ * @brief 发送CAN报文
+ * @param  can_msg          can报文结构体指针
+ * @param  timeout          超时时间
+ * @return int 
+ */
+int RVMcu_SendCanMsg(PCanMsg *can_msg, uint32_t timeout){
+    return RegWrCb_Write(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_SEND_CAN_START, (uint8_t*)can_msg, sizeof(PCanMsg), timeout);
+}
 
+/**
+ * @brief 接收CAN报文
+ * @param  can_msg          can报文结构体指针
+ * @param  timeout          超时时间
+ * @return int              成功返回1 无数据0 错误负数
+ */
+int RVMcu_ReceiveCanMsg(PCanMsg *can_msg, uint32_t timeout){
+    int ret;
+    ret = RegWrCb_Read(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_RECEIVE_CAN_START, (uint8_t*)can_msg, sizeof(PCanMsg), timeout);
+    if(ret > 0) return 1;
+    return ret;
+}
 
+/**
+ * @brief 接收多块CAN报文用这个效率会高很多
+ * @param  can_msg          can报文结构体指针
+ * @param  cnt              can_msg 数组的长度
+ * @param  timeout          超时时间
+ * @return int 
+ */
+int RVMcu_ReceiveCanMsgBlock(PCanMsg *can_msg, uint32_t cnt,  uint32_t timeout){
+    int ret;
+    ret = RegWrCb_Read(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_RECEIVE_CAN_START, (uint8_t*)can_msg, sizeof(PCanMsg) * cnt, timeout);
+    if(ret > 0)
+        return ret/sizeof(PCanMsg);
+    return ret;
+}
 
 
 /**
