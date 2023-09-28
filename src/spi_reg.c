@@ -15,10 +15,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libgen.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
+#include <sys/file.h>
 
 #include "crc_check.h"
 #include "memctrl.h"
@@ -114,6 +116,9 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
     uint32_t fill_len; 
 
     if(h == NULL) return -1;
+
+    ret = flock(h->lock_fd, LOCK_EX);
+    if(ret < 0) return ret;
     memset(h->rx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     memset(h->tx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     SET_MEM_VAL_TYPE_SYSTEM_TO_BIG(h->tx_buf + CMD_1BYTE_OFFSET, SPI_CMD_READ_REG, uint8_t);
@@ -122,20 +127,20 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
     crc16_val = crc16(crc16_val, h->tx_buf, CMD_WR_CMD_LEN);
 
     ret = _GotoStartCmd(h, timeout);
-    if(ret < 0) return -2;
+    if(ret < 0) { ret = -2 ; goto out;};
     ret = _TransferSpi(h, SPI_CMD_LEN);
-    if(ret < 0) return ret;
+    if(ret < 0) goto out;
     ret = _WaitAck(h, timeout);
-    if(ret < 0) return -2;
+    if(ret < 0) { ret = -2 ; goto out;};
     trans_length = reg_cnt + WR_CRC_LEN;
         /* 计算需要填充的大小 */
     fill_len =  (WR_DATA_ALIGN_BYTE - trans_length%WR_DATA_ALIGN_BYTE) % WR_DATA_ALIGN_BYTE;
     trans_length += fill_len;
     ret = _TransferSpi(h, trans_length);
-    if(ret < 0) return ret;
+    if(ret < 0) goto out;
 
     ret = _WaitAck(h, timeout);
-    if(ret < 0) return -2;
+    if(ret < 0) { ret = -2 ; goto out;};
     
     crc16_val = crc16(crc16_val, h->rx_buf, reg_cnt);
 
@@ -143,11 +148,16 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
         GET_MEM_VAL(h->rx_buf+reg_cnt, uint16_t), 
         uint16_t);
     //dbg_infohex(h->rx_buf, reg_cnt+WR_CRC_LEN);
-    if(read_crc16_val != crc16_val){
-        return -3;
+    if(read_crc16_val == crc16_val){
+        memcpy(reg_data, h->rx_buf, reg_cnt);
+        ret = 0;
+    }else{
+        ret = -3;
     }
-    memcpy(reg_data, h->rx_buf, reg_cnt);
-    return 0;
+
+out:
+    flock(h->lock_fd, LOCK_UN);
+    return ret;
 }
 
 int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uint8_t *reg_data, uint32_t timeout){
@@ -157,6 +167,13 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     uint32_t fill_len; 
 
     if(h == NULL) return -1;
+
+    ret = flock(h->lock_fd, LOCK_EX);
+    if(ret < 0) {
+        dbg_debugfl("debug!");
+        return ret;
+    }
+
     memset(h->rx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     memset(h->tx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     SET_MEM_VAL_TYPE_SYSTEM_TO_BIG(h->tx_buf + CMD_1BYTE_OFFSET, SPI_CMD_WRITE_REG, uint8_t);
@@ -165,13 +182,13 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     crc16_val = crc16(crc16_val, h->tx_buf, CMD_WR_CMD_LEN);
 
     ret = _GotoStartCmd(h, timeout);
-    if(ret < 0) return -2;
+    if(ret < 0) { ret = -2 ; goto out;};
 
     ret = _TransferSpi(h, SPI_CMD_LEN);
-    if(ret < 0) return ret;
+    if(ret < 0) goto out;
 
     ret = _WaitAck(h, timeout);
-    if(ret < 0) return -2;
+    if(ret < 0) { ret = -2 ; goto out;};
     /* 开始准备发送的数据 */
     crc16_val = crc16(crc16_val, reg_data, reg_cnt);
     memcpy(h->tx_buf, reg_data, reg_cnt);
@@ -183,10 +200,12 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     trans_length += fill_len;
     //dbg_infohex(h->tx_buf, trans_length);
     ret = _TransferSpi(h, trans_length);
-    if(ret < 0) return ret;
+    if(ret < 0) goto out;
 
     ret = _WaitAck(h, timeout);
-    if(ret < 0) return -2;
+    if(ret < 0) { ret = -2 ; goto out;};
+out:
+    flock(h->lock_fd, LOCK_UN);
     return ret;
 }
 
@@ -197,35 +216,59 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
  * @return int 
  */
 int SpiReg_Init(SpiRegHandle *h, char* spi_dev, char* uart_dev, uint32_t spi_speed){
-    int fd,ret;
+    int fd,ret,lock_fd;
+    char lock_path[512] = {0};
     uint8_t mode = SPI_MODE_3;              // 设置模式为 0
     uint8_t lsb_first = 0;                  // 设置为 MSB 优先
     uint8_t bits_per_word = 8;              // 设置数据位数为 8 位
 
-    fd = open(spi_dev, O_RDWR);  // 打开 SPI 设备文件
-    if (fd < 0)
-        return fd;
+    strcpy(lock_path, "/run/lock/");
+    strncat(lock_path, basename(spi_dev), 40);
+    strncat(lock_path, "__", 40);
+    strncat(lock_path, basename(uart_dev), 40);
+    strncat(lock_path, ".lock", 40);
+
+    lock_fd = open(lock_path, O_CREAT | O_RDWR, 0666);
+    if(lock_fd < 0)
+        return lock_fd;
+
+    ret = flock(h->lock_fd, LOCK_EX);
+    if(ret < 0) { 
+        close(lock_fd);
+        return ret;
+    }
+    ret = open(spi_dev, O_RDWR);  // 打开 SPI 设备文件
+    if(ret < 0)  goto open_spi_error;
+    fd = ret;
     ret = ioctl(fd, SPI_IOC_WR_MODE, &mode);
-    if ( ret < 0) goto err_out;
+    if ( ret < 0) goto ioctl_error;
     
     ret = ioctl(fd, SPI_IOC_WR_LSB_FIRST, &lsb_first);
-    if ( ret < 0) goto err_out;
+    if ( ret < 0) goto ioctl_error;
 
     ret = ioctl(fd, SPI_IOC_WR_BITS_PER_WORD, &bits_per_word);
-    if ( ret < 0) goto err_out;
+    if ( ret < 0) goto ioctl_error;
 
     ret = ioctl(fd, SPI_IOC_WR_MAX_SPEED_HZ, &spi_speed);
-    if ( ret < 0) goto err_out;
+    if ( ret < 0) goto ioctl_error;
     
     memset(h,0,sizeof(SpiRegHandle));
     h->fd =fd;
+    h->lock_fd = lock_fd;
     h->speed = spi_speed;
 
     h->uart_fd = uart_Open(uart_dev, UART_SPEED, 8, 1, 'N');
-    if(h->uart_fd < 0) goto err_out;
+    if(h->uart_fd < 0) goto uart_open_error;
+
+    flock(h->lock_fd, LOCK_UN);
+
     return 0;
-err_out:
+uart_open_error:
+ioctl_error:
     close(fd);
+open_spi_error:
+    flock(h->lock_fd, LOCK_UN);
+    close(lock_fd);
     return ret;
 }
 

@@ -44,9 +44,9 @@ static int _run_test(RunConfig *config){
         
         if(config->is_write){
             make_data(config->wr_buf, config->reg_cnt);
-            ret = RVMcu_WriteReg(config->reg_addr, config->wr_buf, config->reg_cnt, 200);
+            ret = RVMcu_WriteReg(config->reg_addr, config->wr_buf, config->reg_cnt, 400);
         }else{
-            ret = RVMcu_ReadReg(config->reg_addr, config->wr_buf, config->reg_cnt, 200);
+            ret = RVMcu_ReadReg(config->reg_addr, config->wr_buf, config->reg_cnt, 400);
         }
         if(ret < 0){
             dbg_infoln("第%d次测试:失败",i);
@@ -66,14 +66,14 @@ static int fun_wr(RunConfig *config){
         }
 
         if(config->is_write){
-            ret = RVMcu_WriteReg(config->reg_addr, config->wr_buf, config->reg_cnt, 200);
+            ret = RVMcu_WriteReg(config->reg_addr, config->wr_buf, config->reg_cnt, 400);
             if(ret < 0){
                 dbg_errfl("ERROR 写寄存器失败 ret = %d",ret);
                 return -1;
             }
             
         }else{
-            ret = RVMcu_ReadReg(config->reg_addr, config->wr_buf, config->reg_cnt, 200);
+            ret = RVMcu_ReadReg(config->reg_addr, config->wr_buf, config->reg_cnt, 400);
             if(ret < 0){
                 dbg_errfl("ERROR 读寄存器失败 ret = %d",ret);
                 return -1;
@@ -307,6 +307,7 @@ static int fun_show_mpu_online(RunConfig *config){
         mpu_online_cnt++;
         usleep(100000);
         RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_online_cnt) , &mpu_online_cnt, sizeof(mpu_online_cnt), 200);
+        dbg_infofl("simon debug");
     }
     return 0;
 }

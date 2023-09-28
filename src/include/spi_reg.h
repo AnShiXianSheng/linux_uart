@@ -22,6 +22,7 @@ extern "C"{
 
 typedef struct _SpiRegHandle{
     int fd;
+    int lock_fd;
     int uart_fd;
     uint8_t tx_buf[SPI_RT_MSG_MAX_SIZE];
     uint8_t rx_buf[SPI_RT_MSG_MAX_SIZE];
