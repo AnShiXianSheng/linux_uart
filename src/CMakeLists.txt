@@ -37,24 +37,27 @@ include_directories(
 	"${PROJECT_SOURCE_DIR}/can-iostp/include/"
 )
 
+add_library(rearview_mcu STATIC
+	"${PROJECT_SOURCE_DIR}/spi_reg.c"
+	"${PROJECT_SOURCE_DIR}/regwr_cb.c"
+	"${PROJECT_SOURCE_DIR}/rearview_mcu.c"
+	"${PROJECT_SOURCE_DIR}/general/pp_uart.c"
+	"${PROJECT_SOURCE_DIR}/general/crc_check.c"
+)
 
 # 指定生成目标cd in	
 add_executable(    ${TARGET_APP}
 					"${PROJECT_SOURCE_DIR}/general/debug.c"
-					"${PROJECT_SOURCE_DIR}/general/md5.c"
+					#"${PROJECT_SOURCE_DIR}/general/md5.c"
 					"${PROJECT_SOURCE_DIR}/general/argparse.c"
-					"${PROJECT_SOURCE_DIR}/general/crc_check.c"
-					"${PROJECT_SOURCE_DIR}/general/pp_uart.c"
 					"${PROJECT_SOURCE_DIR}/main.c"
-					"${PROJECT_SOURCE_DIR}/spi_reg.c"
-					"${PROJECT_SOURCE_DIR}/regwr_cb.c"
 					"${PROJECT_SOURCE_DIR}/run.c"
-					"${PROJECT_SOURCE_DIR}/rearview_mcu.c"
 )
 
 # 指定库
 target_link_libraries(${TARGET_APP} 
-	"-lpthread"
+	PRIVATE
+	"rearview_mcu"
 )
 
 
