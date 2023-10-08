@@ -269,18 +269,15 @@ static int fun_show_mcu_can_event(RunConfig *config){
 
 static int fun_set_or_clean_mpu_dtc(RunConfig *config){
     int ret;
-    MpuBusinessReg mpuBusinessReg;
     uint32_t dtc_map;
     uint32_t dtc_map_mask = MPU_DTC_MAP_MASK;
 
 
     if(config->set_dtc == config->clean_dtc)
         return 0;
-    ret = RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START, 
-        (uint8_t*)&mpuBusinessReg, sizeof(mpuBusinessReg), 200);
-    dtc_map = mpuBusinessReg.dtc_map;
+    ret = RVMcu_ReadMpuDtc(&dtc_map);
     if(ret < 0){
-        dbg_errfl("SpiReg_Read error! ret = %d",ret);
+        dbg_errfl("RVMcu_ReadDtc error! ret = %d",ret);
         return -1;
     }
     if(config->set_dtc && config->set_dtc <= 32 && Get_Bit(&dtc_map_mask, config->set_dtc-1)){
@@ -289,26 +286,23 @@ static int fun_set_or_clean_mpu_dtc(RunConfig *config){
     if(config->clean_dtc && config->clean_dtc <= 32 && Get_Bit(&dtc_map_mask, config->clean_dtc-1)){
         Set_Bit(&dtc_map, config->clean_dtc-1, 0);
     }
-    mpuBusinessReg.dtc_map = dtc_map;
-    mpuBusinessReg.mpu_online_cnt++;
 
-    /* 这一组的第一个寄存器尽量不要写 */
-    ret = RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + sizeof(mpuBusinessReg.is_allow_send), 
-        (uint8_t*)&mpuBusinessReg.mpu_online_cnt, sizeof(mpuBusinessReg)-sizeof(mpuBusinessReg.is_allow_send), 200);
+    /* 喂狗是让mcu知道MPU在线，否则MCU不会处理DTC的 */
+    RVMcu_WdogFeed();
+
+    ret = RVMcu_WriteMpuDtc(dtc_map);
     if(ret < 0){
-        dbg_errfl("RVMcu_WriteReg error! ret = %d",ret);
+        dbg_errfl("RVMcu_WriteDtc error! ret = %d",ret);
         return -1;
     }
     return 0;
 }
 
-static int fun_show_mpu_online(RunConfig *config){
-    uint8_t mpu_online_cnt = 0;
+static int fun_mpu_online(RunConfig *config){
     (void) config;
     while(1){
-        mpu_online_cnt++;
         usleep(100000);
-        RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_online_cnt) , &mpu_online_cnt, sizeof(mpu_online_cnt), 200);
+        RVMcu_WdogFeed();
     }
     return 0;
 }
@@ -320,11 +314,9 @@ static int fun_show_mpu_dtc(RunConfig *config){
     int i;
     (void)config;
 
-    ret = RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, dtc_map), 
-        (uint8_t*)&dtc_map, sizeof(dtc_map), 200);
-    
+    ret = RVMcu_ReadMpuDtc(&dtc_map);
     if(ret < 0){
-        dbg_errfl("SpiReg_Read error! ret = %d",ret);
+        dbg_errfl("RVMcu_ReadDtc error! ret = %d",ret);
         return -1;
     }
 
@@ -380,6 +372,17 @@ static int fun_loop_receive_can_msg(RunConfig *config){
     return ret;
 }
 
+static int fun_setting_wdog(RunConfig *config){
+    int ret;
+    int sta;
+    sta = config->is_close_wdog ? 0 : config->is_opne_wdog;
+    ret = RVMcu_WdogConfig(sta);
+    if(ret < 0){
+        dbg_errfl("RVMcu_WriteReg error! ret = %d",ret);
+    }
+    return ret;
+}
+
 int  run(RunConfig *config){
     int ret;
     if(config->mode == FUN_RW){
@@ -399,11 +402,13 @@ int  run(RunConfig *config){
     }else if(config->mode == FUN_SET_OR_CLEAN_MPU_DTC){
         return fun_set_or_clean_mpu_dtc(config);
     }else if(config->mode == FUN_MPU_ONLINE){
-        return fun_show_mpu_online(config);
+        return fun_mpu_online(config);
     }else if(config->mode == FUN_SEND_CAN_MSG){
         return fun_send_can_msg(config);
     }else if(config->mode == FUN_LOOP_RECEIVE_CAN_MSG){
         return fun_loop_receive_can_msg(config);
+    }else if(config->mode == FUN_SETTING_WDOG){
+        return fun_setting_wdog(config);
     }
 
 

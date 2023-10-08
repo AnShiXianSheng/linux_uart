@@ -107,6 +107,9 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     if(config->is_loop_reveive){
         config->mode = FUN_LOOP_RECEIVE_CAN_MSG;
     }
+    if(config->is_opne_wdog || config->is_close_wdog){
+        config->mode = FUN_SETTING_WDOG;
+    }
     
     return 0;
 }
@@ -127,6 +130,8 @@ int main(int argc, const char* argv[]){
         .mode = FUN_MPU_ONLINE,
         .is_send_can = 0,
         .is_loop_reveive = 0,
+        .is_opne_wdog = 0,
+        .is_close_wdog = 0,
     };
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -138,6 +143,8 @@ int main(int argc, const char* argv[]){
         OPT_BOOLEAN('c', "read-can-event", &run_config.is_read_can_event, "读所有CAN事件", NULL, 0, 0),
         OPT_BOOLEAN('i', "show-mcu-info", &run_config.is_show_mcu_info, "显示mcu所有信息", NULL, 0, 0),
         OPT_BOOLEAN('l', "look-mpu-dtc", &run_config.is_look_dtc, "显示MPU故障", NULL, 0, 0),
+        OPT_BOOLEAN('o', "open-wdog", &run_config.is_opne_wdog, "打开看门狗", NULL, 0, 0),
+        OPT_BOOLEAN('z', "close-wdog", &run_config.is_close_wdog, "关闭看门狗", NULL, 0, 0),
         OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
         OPT_STRING('U', "Update", &run_config.mcu_force_firmware, "强行升级固件", NULL, 0, 0),
         OPT_INTEGER('t', "test", &run_config.test_cnt, "测试模式", NULL, 0, 0),

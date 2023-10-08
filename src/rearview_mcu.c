@@ -257,6 +257,66 @@ int RVMcu_ForceBurnMcu(const char* mcu_firmware_path){
     return _BurnMcu(mcu_firmware_path);
 }
 
+/**
+ * @brief  看门狗配置
+ * @param  is_on_wdog       1开启看门狗 0关闭看门狗
+ * @return int 
+ */
+int RVMcu_WdogConfig(int is_on_wdog){
+        int ret;
+    uint8_t sta = (uint8_t) !!is_on_wdog;
+    uint8_t mpu_online_cnt = 0;
+
+    RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_online_cnt), 
+        (uint8_t*)&mpu_online_cnt, sizeof(mpu_online_cnt), 200);
+    mpu_online_cnt++;
+    RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_online_cnt), 
+        (uint8_t*)&mpu_online_cnt, sizeof(mpu_online_cnt), 200);
+
+    ret = RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, offline_timeout_reset) ,
+         &sta, sizeof(sta), 200);
+    return ret;
+}
+
+/**
+ * @brief 喂狗函数
+ * @return int 
+ */
+int RVMcu_WdogFeed(void){
+    static uint8_t last_cnt = 0xff;
+    int ret;
+    if(last_cnt == 0xff){
+        RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_online_cnt), 
+        (uint8_t*)&last_cnt, sizeof(last_cnt), 200);
+        last_cnt++;
+    }
+    ret = RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_online_cnt), 
+        (uint8_t*)&last_cnt, sizeof(last_cnt), 200);
+    last_cnt++;
+    return ret;
+}
+
+
+/**
+ * @brief  配置故障
+ * @param  dtc_map          故障位图， bit0代表故障1，  1为故障产生 0为没有故障
+ * @return int 
+ */
+int RVMcu_WriteMpuDtc(uint32_t dtc_map){
+    return RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, dtc_map), 
+        (uint8_t*)&dtc_map, sizeof(dtc_map), 200);
+}
+
+/**
+ * @brief  配置故障
+ * @param  dtc_map          返回故障位图， bit0代表故障1，  1为故障产生 0为没有故障
+ * @return int 
+ */
+int RVMcu_ReadMpuDtc(uint32_t* dtc_map){
+    return RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, dtc_map), 
+        (uint8_t*)dtc_map, sizeof(*dtc_map), 200);
+}
+
 
 int RVMcu_Init(void){
     return SpiReg_Init(&spiRegHandle, RVM_SPI_PATH, RVM_UART_PATH, RVM_SPI_SPEED);

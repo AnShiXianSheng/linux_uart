@@ -33,10 +33,10 @@ extern "C"{
 #pragma pack(1)
 typedef struct _MpuBusinessReg{
     uint8_t is_allow_send;                              /* 建议MPU只读，是否允许发送can报文，MPU见到此标志被置位时，应该停止发送CAN报文，即使发送也会被MCU清除 */
-    uint8_t mpu_online_cnt;                          /* mpu在线,当mpu在线时应该对该值进行++ */
-    uint8_t reserve[2];                                 /* 保留 */
+    uint8_t mpu_online_cnt;                             /* mpu在线,当mpu在线时应该对该值进行++ */
+    uint8_t offline_timeout_reset;                      /* 离线超时复位 0使能 1使能 */
+    uint8_t reserve[1];                                 /* 保留 */
     uint32_t dtc_map;                                   /* 故障位图 bit0对应1号故障,依此类推到12号故障,当故障存在时应该置相应位为1，故障消失时置相应位为0*/
-    
 }MpuBusinessReg;
 #pragma pack()
 

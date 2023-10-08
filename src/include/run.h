@@ -33,6 +33,7 @@ enum RUN_FUN{
     FUN_SET_OR_CLEAN_MPU_DTC,
     FUN_SEND_CAN_MSG,
     FUN_LOOP_RECEIVE_CAN_MSG,
+    FUN_SETTING_WDOG,
 };
 
 typedef struct _RunConfig{
@@ -49,6 +50,8 @@ typedef struct _RunConfig{
     int           is_read;
     int           is_send_can;
     int           is_read_can_event;
+    int           is_opne_wdog;
+    int           is_close_wdog;
     char          *mcu_firmware;
     char          *mcu_force_firmware;
     enum RUN_FUN  mode;
