@@ -273,5 +273,11 @@ open_spi_error:
 }
 
 void SpiReg_Exit(SpiRegHandle *h){
+
+    flock(h->lock_fd, LOCK_EX);
     close(h->fd);
+    close(h->uart_fd);
+    flock(h->lock_fd, LOCK_UN);
+    close(h->lock_fd);
+    
 }
