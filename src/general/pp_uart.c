@@ -245,6 +245,8 @@ ssize_t uart_Read(int fd,void *data_buf, size_t buf_size, int timeout)
 			rn = read(fd, read_p, end_p-read_p);
 			if(rn < 0)
 				return rn;
+			if( rn == 0)
+				break ;
 			read_p += rn;
 		}
 	}
