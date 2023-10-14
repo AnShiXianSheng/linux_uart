@@ -110,6 +110,13 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     if(config->is_opne_wdog || config->is_close_wdog){
         config->mode = FUN_SETTING_WDOG;
     }
+    if(config->is_reset_mcu ){
+        config->mode = FUN_RESET_MCU;
+    }
+    if(config->rearview_type != 0xFFFFFFFF ){
+        config->mode = FUN_SET_REARVIEW_TYPE;
+    }
+
     
     return 0;
 }
@@ -132,6 +139,8 @@ int main(int argc, const char* argv[]){
         .is_loop_reveive = 0,
         .is_opne_wdog = 0,
         .is_close_wdog = 0,
+        .is_reset_mcu = 0,
+        .rearview_type = 0xFFFFFFFF,
     };
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -145,10 +154,12 @@ int main(int argc, const char* argv[]){
         OPT_BOOLEAN('l', "look-mpu-dtc", &run_config.is_look_dtc, "显示MPU故障", NULL, 0, 0),
         OPT_BOOLEAN('o', "open-wdog", &run_config.is_opne_wdog, "打开看门狗", NULL, 0, 0),
         OPT_BOOLEAN('z', "close-wdog", &run_config.is_close_wdog, "关闭看门狗", NULL, 0, 0),
+        OPT_BOOLEAN('b', "mcu-reset", &run_config.is_reset_mcu, "MCU复位", NULL, 0, 0),
         OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
         OPT_STRING('U', "Update", &run_config.mcu_force_firmware, "强行升级固件", NULL, 0, 0),
         OPT_INTEGER('t', "test", &run_config.test_cnt, "测试模式", NULL, 0, 0),
         OPT_INTEGER('s', "set-mpu-dtc", &run_config.set_dtc, "设置MPU故障 1-12", NULL, 0, 0),
+        OPT_INTEGER('x', "set-rearview-type", &run_config.rearview_type, "设置后视镜类型  0为右镜 1为左镜", NULL, 0, 0),
         OPT_INTEGER('e', "clean-mpu-dtc", &run_config.clean_dtc, "清除MPU故障 1-12", NULL, 0, 0),
         OPT_END(),
     };

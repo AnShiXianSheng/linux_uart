@@ -21,12 +21,13 @@ extern "C"{
 #endif /* __cplusplus */
 
 typedef struct _SpiRegHandle{
-    int fd;
-    int lock_fd;
-    int uart_fd;
-    uint8_t tx_buf[SPI_RT_MSG_MAX_SIZE];
-    uint8_t rx_buf[SPI_RT_MSG_MAX_SIZE];
-    uint32_t speed;
+    int                     fd;
+    int                     lock_fd;
+    int                     uart_fd;
+    uint8_t                 tx_buf[SPI_RT_MSG_MAX_SIZE];
+    uint8_t                 rx_buf[SPI_RT_MSG_MAX_SIZE];
+    uint32_t                speed;
+    pthread_mutex_t 		mutex;
 }SpiRegHandle;
 
 

@@ -258,6 +258,22 @@ int RVMcu_ForceBurnMcu(const char* mcu_firmware_path){
 }
 
 /**
+ * @brief  获取当前看门狗状态
+ * @param  is_on_wdog       My Param doc
+ * @return int 
+ */
+int RVMcu_WdogGetSta(int *is_on_wdog){
+    int ret;
+    uint8_t sta;
+    ret = RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, offline_timeout_reset) ,
+         &sta, sizeof(sta), 200);
+    if(ret < 0) return ret;
+    *is_on_wdog = sta;
+    return 0;
+}
+
+
+/**
  * @brief  看门狗配置
  * @param  is_on_wdog       1开启看门狗 0关闭看门狗
  * @return int 
@@ -317,6 +333,41 @@ int RVMcu_ReadMpuDtc(uint32_t* dtc_map){
         (uint8_t*)dtc_map, sizeof(*dtc_map), 200);
 }
 
+/**
+ * @brief Mcu复位
+ * @return int 
+ */
+int RVMcu_McuReset(void){
+    uint8_t reset_mcu = 1;
+    return RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, reset_mcu), 
+        (uint8_t*)&reset_mcu, sizeof(reset_mcu), 200);
+}
+
+/**
+ * @brief  设置后视镜类型
+ * @param  is_left_rearview My Param doc
+ * @return int 
+ */
+int RVMcu_SetRearviewType(int is_left_rearview){
+    uint8_t sta = is_left_rearview;
+    return RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, is_left_rearview), 
+        (uint8_t*)&sta, sizeof(sta), 200);
+}
+
+/**
+ * @brief  获取现在MCU所在的镜子类型
+ * @param  is_left_rearview My Param doc
+ * @return int 
+ */
+int RVMcu_GetRearviewType(int *is_left_rearview){
+    uint8_t sta;
+    int ret;
+    ret = RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, is_left_rearview), 
+        (uint8_t*)&sta, sizeof(sta), 200);
+    if(ret < 0) return ret;
+    *is_left_rearview = sta;
+    return ret;
+}
 
 int RVMcu_Init(void){
     return SpiReg_Init(&spiRegHandle, RVM_SPI_PATH, RVM_UART_PATH, RVM_SPI_SPEED);

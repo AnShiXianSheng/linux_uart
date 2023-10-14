@@ -88,6 +88,7 @@ static int fun_wr(RunConfig *config){
 
 static int fun_show_mcu_info(RunConfig *config){
     int ret;
+    int is_left_rearview;
     McuInfo *mcu_info = (McuInfo *)config->wr_buf;
     ret = RVMcu_ReadReg(ROREG_INFO_START, (uint8_t*)mcu_info, sizeof(McuInfo), 200);
     if(ret < 0){
@@ -101,7 +102,10 @@ static int fun_show_mcu_info(RunConfig *config){
     dbg_inforaw("mcu ver: V%d.%d.%d\n", mcu_info->software_version.major,
                                       mcu_info->software_version.minor,
                                       mcu_info->software_version.patch );
-
+    ret = RVMcu_GetRearviewType(&is_left_rearview);
+    if(ret == 0){
+        dbg_inforaw("rearview type: %s\n", is_left_rearview ? "左镜":"右镜");
+    }
     return 0;
 }
 
@@ -409,6 +413,10 @@ int  run(RunConfig *config){
         return fun_loop_receive_can_msg(config);
     }else if(config->mode == FUN_SETTING_WDOG){
         return fun_setting_wdog(config);
+    }else if(config->mode == FUN_RESET_MCU){
+        return RVMcu_McuReset();
+    }else if(config->mode == FUN_SET_REARVIEW_TYPE){
+        return RVMcu_SetRearviewType(config->rearview_type);
     }
 
 

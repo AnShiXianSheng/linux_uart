@@ -32,6 +32,7 @@ extern int RVMcu_WriteMpuDtc(uint32_t dtc_map);
 /* 看门狗开启与喂狗接口 */
 extern int RVMcu_WdogFeed(void);
 extern int RVMcu_WdogConfig(int is_on_wdog);
+extern int RVMcu_WdogGetSta(int *is_on_wdog);
 
 /* CAN发送与接受接口 */
 extern int RVMcu_ReceiveCanMsgBlock(PCanMsg *can_msg, uint32_t cnt,  uint32_t timeout);
@@ -45,6 +46,11 @@ extern int RVMcu_ReadReg(uint16_t reg_addr,  uint8_t *reg_data, uint16_t reg_cnt
 /* 烧写相关接口 */
 extern int RVMcu_BurnMcu(const char* mcu_firmware_path);
 extern int RVMcu_ForceBurnMcu(const char* mcu_firmware_path);
+
+/* 杂项接口 */
+extern int RVMcu_McuReset(void);
+extern int RVMcu_SetRearviewType(int is_left_rearview);
+extern int RVMcu_GetRearviewType(int *is_left_rearview);
 
 extern int RVMcu_Init(void);
 extern void RVMcu_Exit(void);

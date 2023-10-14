@@ -21,12 +21,15 @@
 #include <sys/ioctl.h>
 #include <linux/spi/spidev.h>
 #include <sys/file.h>
+#include <pthread.h>
 
 #include "crc_check.h"
 #include "memctrl.h"
 #include "spi_reg.h"
 #include "debug.h"
 #include "pp_uart.h"
+
+
 
 #define SPI_TIMEOUT_MS                  100
 #define SPI_START_TIMEOUT_MS            55
@@ -119,6 +122,9 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
 
     ret = flock(h->lock_fd, LOCK_EX);
     if(ret < 0) return ret;
+
+    pthread_mutex_lock(&h->mutex);
+
     memset(h->rx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     memset(h->tx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     SET_MEM_VAL_TYPE_SYSTEM_TO_BIG(h->tx_buf + CMD_1BYTE_OFFSET, SPI_CMD_READ_REG, uint8_t);
@@ -156,6 +162,7 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
     }
 
 out:
+    pthread_mutex_unlock(&h->mutex);
     flock(h->lock_fd, LOCK_UN);
     return ret;
 }
@@ -167,12 +174,13 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     uint32_t fill_len; 
 
     if(h == NULL) return -1;
-
     ret = flock(h->lock_fd, LOCK_EX);
     if(ret < 0) {
         dbg_debugfl("debug!");
         return ret;
     }
+    
+    pthread_mutex_lock(&h->mutex);
 
     memset(h->rx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     memset(h->tx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
@@ -205,6 +213,7 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     ret = _WaitAck(h, timeout);
     if(ret < 0) { ret = -2 ; goto out;};
 out:
+    pthread_mutex_unlock(&h->mutex);
     flock(h->lock_fd, LOCK_UN);
     return ret;
 }
@@ -260,6 +269,8 @@ int SpiReg_Init(SpiRegHandle *h, char* spi_dev, char* uart_dev, uint32_t spi_spe
     h->uart_fd = uart_Open(uart_dev, UART_SPEED, 8, 1, 'N');
     if(h->uart_fd < 0) goto uart_open_error;
 
+    pthread_mutex_init(&h->mutex, NULL);
+
     flock(h->lock_fd, LOCK_UN);
 
     return 0;
@@ -274,7 +285,9 @@ open_spi_error:
 
 void SpiReg_Exit(SpiRegHandle *h){
 
+
     flock(h->lock_fd, LOCK_EX);
+    pthread_mutex_destroy(&h->mutex);
     close(h->fd);
     close(h->uart_fd);
     flock(h->lock_fd, LOCK_UN);

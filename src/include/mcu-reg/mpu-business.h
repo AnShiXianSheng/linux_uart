@@ -37,9 +37,16 @@ typedef struct _MpuBusinessReg{
     uint8_t offline_timeout_reset;                      /* 离线超时复位 0使能 1使能 */
     uint8_t reserve[1];                                 /* 保留 */
     uint32_t dtc_map;                                   /* 故障位图 bit0对应1号故障,依此类推到12号故障,当故障存在时应该置相应位为1，故障消失时置相应位为0*/
+    uint8_t mpu_config_byte[80];                        
+    uint8_t reset_mcu;                                  /* reset mcu */
+    uint8_t is_left_rearview;                           /* 配置后视镜左右 */
 }MpuBusinessReg;
 #pragma pack()
 
+extern void     MpuBusiness_Set80ByteConfig(uint8_t *config_80byte);
+extern void     MpuBusiness_Get80ByteConfig(uint8_t *config_80byte);
+extern void     MpuBusiness_SetCanAllowSend(int is_allow);
+extern void     MpuBusiness_SetDtcSetting(int is_setting);
 extern void     MpuBusiness_Proc(void);
 extern int      MpuBusiness_Init(void);
 
