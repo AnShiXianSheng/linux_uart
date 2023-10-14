@@ -243,12 +243,14 @@ int SpiReg_Init(SpiRegHandle *h, char* spi_dev, char* uart_dev, uint32_t spi_spe
     lock_fd = open(lock_path, O_CREAT | O_RDWR | O_CLOEXEC, 0666);
     if(lock_fd < 0)
         return lock_fd;
+    h->lock_fd = lock_fd;
 
     ret = flock(h->lock_fd, LOCK_EX);
     if(ret < 0) { 
         close(lock_fd);
         return ret;
     }
+    
     ret = open(spi_dev, O_RDWR|O_CLOEXEC);  // 打开 SPI 设备文件
     if(ret < 0)  goto open_spi_error;
     fd = ret;
