@@ -119,11 +119,13 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
     uint32_t fill_len; 
 
     if(h == NULL) return -1;
-
-    ret = flock(h->lock_fd, LOCK_EX);
-    if(ret < 0) return ret;
-
+    
     pthread_mutex_lock(&h->mutex);
+    ret = flock(h->lock_fd, LOCK_EX);
+    if(ret < 0){
+         pthread_mutex_unlock(&h->mutex);
+        return ret;
+    }
 
     memset(h->rx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     memset(h->tx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
@@ -162,8 +164,8 @@ int SpiReg_Read(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, uint8_t *r
     }
 
 out:
-    pthread_mutex_unlock(&h->mutex);
     flock(h->lock_fd, LOCK_UN);
+    pthread_mutex_unlock(&h->mutex);
     return ret;
 }
 
@@ -174,13 +176,14 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     uint32_t fill_len; 
 
     if(h == NULL) return -1;
+    
+    pthread_mutex_lock(&h->mutex);
     ret = flock(h->lock_fd, LOCK_EX);
     if(ret < 0) {
-        dbg_debugfl("debug!");
+         pthread_mutex_unlock(&h->mutex);
         return ret;
     }
     
-    pthread_mutex_lock(&h->mutex);
 
     memset(h->rx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
     memset(h->tx_buf, 0xff, SPI_RT_MSG_MAX_SIZE);
@@ -213,8 +216,8 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     ret = _WaitAck(h, timeout);
     if(ret < 0) { ret = -2 ; goto out;};
 out:
-    pthread_mutex_unlock(&h->mutex);
     flock(h->lock_fd, LOCK_UN);
+    pthread_mutex_unlock(&h->mutex);
     return ret;
 }
 
