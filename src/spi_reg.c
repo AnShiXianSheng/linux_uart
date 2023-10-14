@@ -180,7 +180,7 @@ int SpiReg_Write(SpiRegHandle *h, uint16_t reg_addr, uint16_t reg_cnt, const uin
     pthread_mutex_lock(&h->mutex);
     ret = flock(h->lock_fd, LOCK_EX);
     if(ret < 0) {
-         pthread_mutex_unlock(&h->mutex);
+        pthread_mutex_unlock(&h->mutex);
         return ret;
     }
     
