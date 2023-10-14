@@ -181,7 +181,7 @@ int uart_Open(const char *uart_name, int speed, int databits, int stopbits, int 
     int uart_fd;
 
     /* 设置波特率 */
-    uart_fd = open(uart_name, O_RDWR|O_NOCTTY|O_NONBLOCK);
+    uart_fd = open(uart_name, O_RDWR|O_NOCTTY|O_NONBLOCK|O_CLOEXEC);
 	if(uart_fd < 0)
 	{
 		return -1;
