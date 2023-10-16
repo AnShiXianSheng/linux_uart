@@ -51,6 +51,9 @@ extern int RVMcu_ForceBurnMcu(const char* mcu_firmware_path);
 extern int RVMcu_McuReset(void);
 extern int RVMcu_SetRearviewType(int is_left_rearview);
 extern int RVMcu_GetRearviewType(int *is_left_rearview);
+extern int RVMcu_GetConfig80Byte(uint8_t *config_80byte );
+extern int RVMcu_SetSupplyVoltage(uint32_t mv);   /* 毫伏，单位 */
+
 
 extern int RVMcu_Init(void);
 extern void RVMcu_Exit(void);

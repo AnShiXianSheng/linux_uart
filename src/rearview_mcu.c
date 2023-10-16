@@ -369,6 +369,26 @@ int RVMcu_GetRearviewType(int *is_left_rearview){
     return ret;
 }
 
+/**
+ * @brief  获取80个字节的配置字
+ * @param  config_80byte     读80个字节配置字
+ * @return int 
+ */
+int RVMcu_GetConfig80Byte(uint8_t *config_80byte ){
+    return RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_config_byte), 
+        config_80byte, 80, 200);
+}
+
+/**
+ * @brief 设置MPU目前的供电电压,底层用于组成快照项
+ * @param  mv               My Param doc
+ * @return int 
+ */
+int RVMcu_SetSupplyVoltage(uint32_t mv){
+    return RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mpu_supply_voltage), 
+        (uint8_t*)&mv, sizeof(mv), 200);
+}
+
 int RVMcu_Init(void){
     return SpiReg_Init(&spiRegHandle, RVM_SPI_PATH, RVM_UART_PATH, RVM_SPI_SPEED);
 }

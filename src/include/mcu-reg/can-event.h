@@ -167,9 +167,10 @@ typedef struct _RoRegCanEvent{
 
 
 extern void CanEvent_RegisterEventTimeout(const uint16_t timeout_tab[CAN_EVENT_USE_CNT]);
-extern void CanEvent_SetEvent(CAN_EVENT_TYPE event_type, uint32_t event);
-extern int CanEvent_GetEvent(CAN_EVENT_TYPE event_type, uint32_t* event);
-
+extern void CanEvent_SetEvent(CAN_EVENT_TYPE event_type, uint8_t event);
+extern int CanEvent_GetEvent(CAN_EVENT_TYPE event_type, uint8_t* event);
+extern void CanEvent_SetGroupEvent(CAN_EVENT_TYPE event_type, uint32_t group_len, uint8_t *event);
+extern int CanEvent_GetGroupEvent(CAN_EVENT_TYPE event_type, uint32_t group_len, uint8_t *event);
 extern void CanEvent_Proc(void);
 extern int CanEvent_Init(void);
 

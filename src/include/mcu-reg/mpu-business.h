@@ -25,7 +25,7 @@ extern "C"{
 #define RWREG_MPU_BUSINESS_REG_START                    ((RWREG_CB_MPU_BUSINESS_RECEIVE_CAN_START) + 0x08)
 
 
-#define RWREG_DTC_CNT_SIZE                              12
+#define RWREG_DTC_CNT_SIZE                              24
 
 #define MPU_DTC_MAP_MASK                                0x0000078FU
 
@@ -40,6 +40,7 @@ typedef struct _MpuBusinessReg{
     uint8_t mpu_config_byte[80];                        
     uint8_t reset_mcu;                                  /* reset mcu */
     uint8_t is_left_rearview;                           /* 配置后视镜左右 */
+    uint32_t mpu_supply_voltage;                        /* mpu 的电源电压 */
 }MpuBusinessReg;
 #pragma pack()
 
