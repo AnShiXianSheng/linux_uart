@@ -13,12 +13,14 @@
 #ifndef _REARVIEW_MCU_H_
 #define _REARVIEW_MCU_H_
 
-#include "stdint.h"
+#include <stdint.h>
 #include "mcu-reg/mcu-info.h"
 #include "mcu-reg/mpu-burn-mcu.h"
 #include "mcu-reg/can-event.h"
 #include "mcu-reg/mpu-business.h"
+#include "mcu-reg/boot-info.h"
 #include "can-msg.h"
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C"{
@@ -53,6 +55,8 @@ extern int RVMcu_SetRearviewType(int is_left_rearview);
 extern int RVMcu_GetRearviewType(int *is_left_rearview);
 extern int RVMcu_GetConfig80Byte(uint8_t *config_80byte );
 extern int RVMcu_SetSupplyVoltage(uint32_t mv);   /* 毫伏，单位 */
+extern int RVMcu_SetMcuDbgLevel(int level);
+extern int RVMcu_CleanNvm(int nvm_index );
 
 
 extern int RVMcu_Init(void);

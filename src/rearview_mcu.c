@@ -40,6 +40,32 @@ static RegWrCbHandle regWrCbHandle = {
     .write_reg = &RVMcu_WriteReg
 };
 
+/* 获取烧写固件分区,成功返回分区枚举 */
+static int _GetBurnFirmwarePart(const char* mcu_firmware_path){
+    uint8_t  head_data[0x1000];
+    ProgramInfo *info = (ProgramInfo *)(head_data+PROGRAM_INFO_START_ADDR);
+    int ret = -1;
+    int firmware_fd;
+
+    firmware_fd = open(mcu_firmware_path, O_RDONLY);
+    if(firmware_fd < 0){
+        rvm_debug("open文件失败!");
+        return ret;
+    }
+    ret = read(firmware_fd, head_data, sizeof(head_data));
+    if(ret != sizeof(head_data)){
+        rvm_debug("文件错误!");
+        goto out;
+    }
+    if(info->program_magic != PROGRAM_MAGIC){
+        ret = -1; goto out;
+    }
+    ret = info->part;
+out:
+    close(firmware_fd);
+    return ret;
+}
+
 static int _BurnMcu(const char* mcu_firmware_path){
 #define BURN_WR_MAX_RETRY   5
 #define BURN_PARTICLE_SIZE          512
@@ -63,8 +89,8 @@ static int _BurnMcu(const char* mcu_firmware_path){
         return ret;
     }
     if(reg.burn_mode != BURNMODE_ERASE_OK){
-        rvm_debug("擦除失败... error code", reg.error_code);
-        return -reg.error_code;
+        rvm_debug("擦除失败... error code", reg.parameter);
+        return -reg.parameter;
     }
     reg.burn_mode = BURNMODE_START_BURN;
     ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 500);
@@ -98,7 +124,7 @@ static int _BurnMcu(const char* mcu_firmware_path){
                 if(ret < 0)
                     goto burn_out;
                 if(reg.burn_mode == BURNMODE_BURN_ERROR){
-                    ret = -reg.error_code;
+                    ret = -reg.parameter;
                     rvm_debug("烧写失败 %d", ret);
                     goto burn_out;
                 }
@@ -111,7 +137,7 @@ static int _BurnMcu(const char* mcu_firmware_path){
     }
 
     reg.burn_mode = BURNMODE_FINISH_TRANSFER;
-    reg.error_code = 0;
+    reg.parameter = 0;
     RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 500);
 
     /* mcu 会校验结果 */
@@ -123,7 +149,7 @@ static int _BurnMcu(const char* mcu_firmware_path){
         }
         if(reg.burn_mode != BURNMODE_FINISH_TRANSFER){
             //rvm_debug("烧写完成 %d", reg.error_code);
-            ret = -reg.error_code;
+            ret = -reg.parameter;
             break;
         }
         usleep(2000);
@@ -203,14 +229,14 @@ int RVMcu_BurnMcu(const char* mcu_firmware_path){
     BurnStaReg reg = {0};
     McuInfo    info;
     int ret;
-
+    
     ret = RVMcu_ReadReg(ROREG_INFO_START, (uint8_t *)&info, sizeof(info), 200);
     if(ret < 0){
         rvm_debug("读INFO寄存器失败 %d", ret);
         return ret;
     }
 
-    if(info.partition != 0){
+    if(info.partition != BFP_BOOT){
         /* 告诉APP进入BOOTLOADER模式 */
         reg.burn_mode = BURNMODE_APP_GOTO_BOOTLOADER;
         ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 200);
@@ -230,6 +256,17 @@ int RVMcu_BurnMcu(const char* mcu_firmware_path){
         rvm_debug("MCU不在烧写模式或者忙");
         return -1;
     }
+
+    /* 确认烧写分区是否为目标分区 */
+    if( (reg.parameter == BFP_APP_A || reg.parameter == BFP_APP_B) 
+        && reg.parameter != _GetBurnFirmwarePart(mcu_firmware_path)
+    ){
+        rvm_debug("请选择%s分区进行刷写!", reg.parameter == BFP_APP_A ? "A" : "B");
+        reg.burn_mode = BURNMODE_EXIT_BURN;
+        RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 500);
+        return -1;
+    }
+
     return _BurnMcu(mcu_firmware_path);
 }
 
@@ -246,6 +283,26 @@ int RVMcu_ForceBurnMcu(const char* mcu_firmware_path){
     while(1){
         ret = RVMcu_ReadReg(ROREG_INFO_START, (uint8_t *)&info, sizeof(info), 10);
         if(ret == 0 && info.partition == 0 ) break;
+    }
+
+    ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 500);
+    if(ret < 0){
+        rvm_debug("读烧写寄存器失败 %d", ret);
+        return ret;
+    }
+    if(reg.burn_mode != BURNMODE_WAIT_BURN){
+        rvm_debug("MCU不在烧写模式或者忙");
+        return -1;
+    }
+
+    /* 确认烧写分区是否为目标分区 */
+    if( (reg.parameter == BFP_APP_A || reg.parameter == BFP_APP_B) 
+        && reg.parameter != _GetBurnFirmwarePart(mcu_firmware_path)
+    ){
+        rvm_debug("请选择%s分区进行刷写!", reg.parameter == BFP_APP_A ? "A" : "B");
+        reg.burn_mode = BURNMODE_EXIT_BURN;
+        RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 500);
+        return -1;
     }
 
     reg.burn_mode = BURNMODE_START_ERASE;
@@ -311,6 +368,36 @@ int RVMcu_WdogFeed(void){
     last_cnt++;
     return ret;
 }
+
+/**
+ * @brief 设置MCU串口的DBG等级
+ * @param  level
+ * @return int 
+ */
+int RVMcu_SetMcuDbgLevel(int level){
+    uint32_t level_tmp = level;
+    return RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, mcu_debug_level), 
+        (uint8_t*)&level_tmp, sizeof(level_tmp), 200);
+}
+
+/**
+ * @brief 清除NVM
+ * @param  nvm_index
+ * @return int  返回-4说明设备在忙
+ */
+int RVMcu_CleanNvm(int nvm_index ){
+    uint32_t nvm_index_tmp;
+    int ret = RVMcu_ReadReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, nvm_erase), 
+        (uint8_t*)&nvm_index_tmp, sizeof(nvm_index_tmp), 200);
+    if(ret < 0) return ret;
+    if(nvm_index_tmp != 0) return -4;
+
+    nvm_index_tmp = nvm_index;
+
+    return RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, nvm_erase), 
+        (uint8_t*)&nvm_index_tmp, sizeof(nvm_index_tmp), 200);
+}
+
 
 
 /**

@@ -23,7 +23,6 @@ extern "C"{
 
 
 
-
 typedef enum _MBMBurnMode{
     BURNMODE_FORBID,             /* MCU置位 禁止烧写，MPU不得进行烧写 */
     BURNMODE_WAIT_BURN,          /* MCU置位 等待烧写模式，MPU可以写BURNMODE_START_BURN，使MCU进入烧写模式*/
@@ -48,13 +47,22 @@ typedef enum _MBMErrorCode{
 
 #pragma pack(1)
 typedef struct _BurnStaReg{
-    uint8_t  burn_mode;             /* 使用 MBMBurnMode  */
-    uint8_t  error_code;            /* 错误码 */
+    uint8_t         burn_mode;             /* 使用 MBMBurnMode  */
+    uint8_t         parameter;            /* 错误码 */
 }BurnStaReg;
 #pragma pack()
 
 #define RWREG_BURN_START                0x1400
 #define RWREG_CB_BURN_START             (0x1400 + sizeof(BurnStaReg))
+#define RWREG_CB_WRITE_TIMEOUT          500            /* n毫秒秒无操作视为通信中断 */
+
+extern MBMErrorCode MpuBurnMcu_GetErrCode(void);
+extern MBMBurnMode MpuBurnMcu_GetSta(void);
+extern void MpuBurnMcu_SetBurnPart(BurnFlashPart part);
+extern void MpuBurnMcu_SetSta(MBMBurnMode mode);
+extern void MpuBurnMcu_Proc(void);
+extern int MpuBurnMcu_Init(void);
+
 
 #ifdef __cplusplus
 #if __cplusplus

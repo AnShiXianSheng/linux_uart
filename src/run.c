@@ -95,8 +95,8 @@ static int fun_show_mcu_info(RunConfig *config){
         dbg_errfl("SpiReg_Read error! ret = %d",ret);
         return -1;
     }
-    dbg_inforaw("mcu mode: %s\n", mcu_info->partition == 0? "bootloader":
-                                  mcu_info->partition == 1? "app_A": "app_B"       );
+    dbg_inforaw("mcu mode: %s\n", mcu_info->partition == BFP_BOOT ? "bootloader":
+                                  mcu_info->partition == BFP_APP_A ? "app_A": "app_B"       );
     dbg_inforaw("mcu sn: %s\n",mcu_info->sn);
     dbg_inforaw("mcu software model: %s\n",mcu_info->software_model);
     dbg_inforaw("mcu ver: V%d.%d.%d\n", mcu_info->software_version.major,
@@ -387,6 +387,46 @@ static int fun_setting_wdog(RunConfig *config){
     return ret;
 }
 
+static int fun_goto_bootloader(RunConfig *config){
+    int ret;
+    BurnStaReg reg = {0};
+    McuInfo *mcu_info = (McuInfo *)config->wr_buf;
+    ret = RVMcu_ReadReg(ROREG_INFO_START, (uint8_t*)mcu_info, sizeof(McuInfo), 200);
+    if(ret < 0){
+        dbg_errfl("SpiReg_Read error! ret = %d",ret);
+        return -1;
+    }
+    if(mcu_info->partition == 0){
+        return 0;
+    }
+    
+    reg.burn_mode = BURNMODE_APP_GOTO_BOOTLOADER;
+    ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 200);
+    if(ret < 0)
+        dbg_errfl("RVMcu_WriteReg error! ret = %d",ret);
+    return ret;
+}
+
+static int fun_exit_bootloader(RunConfig *config){
+    int ret;
+    BurnStaReg reg = {0};
+    McuInfo *mcu_info = (McuInfo *)config->wr_buf;
+    ret = RVMcu_ReadReg(ROREG_INFO_START, (uint8_t*)mcu_info, sizeof(McuInfo), 200);
+    if(ret < 0){
+        dbg_errfl("SpiReg_Read error! ret = %d",ret);
+        return -1;
+    }
+    if(mcu_info->partition != 0){
+        return 0;
+    }
+    
+    reg.burn_mode = BURNMODE_EXIT_BURN;
+    ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 200);
+    if(ret < 0)
+        dbg_errfl("RVMcu_WriteReg error! ret = %d",ret);
+    return ret;
+}
+
 int  run(RunConfig *config){
     int ret;
     if(config->mode == FUN_RW){
@@ -417,6 +457,18 @@ int  run(RunConfig *config){
         return RVMcu_McuReset();
     }else if(config->mode == FUN_SET_REARVIEW_TYPE){
         return RVMcu_SetRearviewType(config->rearview_type);
+    }else if(config->mode == FUN_SET_MCU_DEBUG_LEVEL){
+        return RVMcu_SetMcuDbgLevel(config->mcu_debug_level);
+    }else if(config->mode == FUN_GOTO_BOOTLOADER){
+        return fun_goto_bootloader(config);
+    }else if(config->mode == FUN_EXIT_BOOTLOADER){
+        return fun_exit_bootloader(config);
+    }else if(config->mode == FUN_CLEAN_NVM){
+        ret = RVMcu_CleanNvm(config->clean_nvm);
+        if(ret == -4){
+            dbg_errfl("设备正忙");
+        }
+        return ret;
     }
 
 

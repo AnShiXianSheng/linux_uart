@@ -14,7 +14,8 @@
  #define _RUN_H_
  
  
- #ifdef __cplusplus
+ #include <stdint.h>
+#ifdef __cplusplus
  #if __cplusplus
  extern "C"{
  #endif
@@ -36,6 +37,10 @@ enum RUN_FUN{
     FUN_SETTING_WDOG,
     FUN_RESET_MCU,
     FUN_SET_REARVIEW_TYPE,
+    FUN_SET_MCU_DEBUG_LEVEL,
+    FUN_EXIT_BOOTLOADER,
+    FUN_GOTO_BOOTLOADER,
+    FUN_CLEAN_NVM,
 };
 
 typedef struct _RunConfig{
@@ -46,6 +51,8 @@ typedef struct _RunConfig{
     uint32_t      set_dtc;
     uint32_t      rearview_type;
     uint32_t      clean_dtc;
+    uint32_t      clean_nvm;
+    int           mcu_debug_level;
     int           is_write;
     int           is_show_mcu_info;
     int           is_look_dtc;
@@ -56,6 +63,8 @@ typedef struct _RunConfig{
     int           is_opne_wdog;
     int           is_close_wdog;
     int           is_reset_mcu;
+    int           is_exit_bootloader;
+    int           is_goto_bootloader;
     char          *mcu_firmware;
     char          *mcu_force_firmware;
     enum RUN_FUN  mode;

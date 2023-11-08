@@ -116,8 +116,18 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     if(config->rearview_type != 0xFFFFFFFF ){
         config->mode = FUN_SET_REARVIEW_TYPE;
     }
-
-    
+    if(config->is_goto_bootloader){
+        config->mode = FUN_GOTO_BOOTLOADER;
+    }
+    if(config->is_exit_bootloader){
+        config->mode = FUN_EXIT_BOOTLOADER;
+    }
+    if(config->mcu_debug_level != -1){
+        config->mode = FUN_SET_MCU_DEBUG_LEVEL;
+    }
+    if(config->clean_nvm != 0){
+        config->mode = FUN_CLEAN_NVM;
+    }
     return 0;
 }
 
@@ -133,6 +143,7 @@ int main(int argc, const char* argv[]){
         .mcu_force_firmware = NULL,
         .set_dtc = 0,
         .clean_dtc = 0,
+        .clean_nvm = 0,
         .is_look_dtc = 0,
         .mode = FUN_MPU_ONLINE,
         .is_send_can = 0,
@@ -140,7 +151,10 @@ int main(int argc, const char* argv[]){
         .is_opne_wdog = 0,
         .is_close_wdog = 0,
         .is_reset_mcu = 0,
+        .is_exit_bootloader = 0,
+        .is_goto_bootloader = 0,
         .rearview_type = 0xFFFFFFFF,
+        .mcu_debug_level = -1,
     };
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -155,12 +169,17 @@ int main(int argc, const char* argv[]){
         OPT_BOOLEAN('o', "open-wdog", &run_config.is_opne_wdog, "打开看门狗", NULL, 0, 0),
         OPT_BOOLEAN('z', "close-wdog", &run_config.is_close_wdog, "关闭看门狗", NULL, 0, 0),
         OPT_BOOLEAN('b', "mcu-reset", &run_config.is_reset_mcu, "MCU复位", NULL, 0, 0),
+        OPT_BOOLEAN('y', "exit-bootloader", &run_config.is_exit_bootloader, "如果在BOOTLOADER中此命令将可以退出BOOTLOADER", NULL, 0, 0),
+        OPT_BOOLEAN('f', "goto-bootloader", &run_config.is_goto_bootloader, "如果在APP中此命令将可以进入BOOTLOADER", NULL, 0, 0),
         OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
         OPT_STRING('U', "Update", &run_config.mcu_force_firmware, "强行升级固件", NULL, 0, 0),
         OPT_INTEGER('t', "test", &run_config.test_cnt, "测试模式", NULL, 0, 0),
         OPT_INTEGER('s', "set-mpu-dtc", &run_config.set_dtc, "设置MPU故障 1-12", NULL, 0, 0),
         OPT_INTEGER('x', "set-rearview-type", &run_config.rearview_type, "设置后视镜类型  0为右镜 1为左镜", NULL, 0, 0),
         OPT_INTEGER('e', "clean-mpu-dtc", &run_config.clean_dtc, "清除MPU故障 1-12", NULL, 0, 0),
+        OPT_INTEGER('E', "clean-nvm", &run_config.clean_nvm, "清除NVM分区 1:清除NVM DTC分区 2:清除NVM USER分区", NULL, 0, 0),
+        OPT_INTEGER('g', "set-mcu-debug-level", &run_config.mcu_debug_level, 
+            "设置MCU串口打印等级 5:DBG_DEBUG 4:DBG_INFO 3:DBG_SYS 2:DBG_WARNING 1:DBG_ERR", NULL, 0, 0),
         OPT_END(),
     };
     debug_init();
