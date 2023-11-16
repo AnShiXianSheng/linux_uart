@@ -41,6 +41,7 @@ enum RUN_FUN{
     FUN_EXIT_BOOTLOADER,
     FUN_GOTO_BOOTLOADER,
     FUN_CLEAN_NVM,
+    FUN_CAN_ECHO_TEST,
 };
 
 typedef struct _RunConfig{
@@ -65,6 +66,7 @@ typedef struct _RunConfig{
     int           is_reset_mcu;
     int           is_exit_bootloader;
     int           is_goto_bootloader;
+    int           is_can_echo_test;
     char          *mcu_firmware;
     char          *mcu_force_firmware;
     enum RUN_FUN  mode;

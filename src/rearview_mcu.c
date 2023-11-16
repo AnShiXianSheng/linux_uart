@@ -184,11 +184,24 @@ int RVMcu_WriteReg(uint16_t reg_addr, const uint8_t *reg_data, uint16_t reg_cnt,
  * @brief 发送CAN报文
  * @param  can_msg          can报文结构体指针
  * @param  timeout          超时时间
- * @return int 
+ * @return int              成功返回1 无数据0 错误负数
  */
 int RVMcu_SendCanMsg(PCanMsg *can_msg, uint32_t timeout){
-    return RegWrCb_Write(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_SEND_CAN_START, (uint8_t*)can_msg, sizeof(PCanMsg), timeout);
+    return RegWrCb_GranWrite(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_SEND_CAN_START, 
+            (uint8_t*)can_msg, sizeof(PCanMsg), 1, timeout);
 }
+
+/**
+ * @brief 发送CAN报文
+ * @param  can_msg          can报文结构体指针
+ * @param  timeout          超时时间
+ * @return int              成功返回写报文的数量，失败返回负数
+ */
+int RVMcu_SendCanMsgBlock(PCanMsg *can_msg, uint32_t cnt, uint32_t timeout){
+    return RegWrCb_GranWrite(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_SEND_CAN_START, 
+            (uint8_t*)can_msg, sizeof(PCanMsg), cnt, timeout);
+}
+
 
 /**
  * @brief 接收CAN报文
@@ -197,10 +210,8 @@ int RVMcu_SendCanMsg(PCanMsg *can_msg, uint32_t timeout){
  * @return int              成功返回1 无数据0 错误负数
  */
 int RVMcu_ReceiveCanMsg(PCanMsg *can_msg, uint32_t timeout){
-    int ret;
-    ret = RegWrCb_Read(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_RECEIVE_CAN_START, (uint8_t*)can_msg, sizeof(PCanMsg), timeout);
-    if(ret > 0) return 1;
-    return ret;
+    return RegWrCb_GranRead(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_RECEIVE_CAN_START, 
+        (uint8_t*)can_msg, sizeof(PCanMsg), 1, timeout);
 }
 
 /**
@@ -211,11 +222,8 @@ int RVMcu_ReceiveCanMsg(PCanMsg *can_msg, uint32_t timeout){
  * @return int 
  */
 int RVMcu_ReceiveCanMsgBlock(PCanMsg *can_msg, uint32_t cnt,  uint32_t timeout){
-    int ret;
-    ret = RegWrCb_Read(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_RECEIVE_CAN_START, (uint8_t*)can_msg, sizeof(PCanMsg) * cnt, timeout);
-    if(ret > 0)
-        return ret/sizeof(PCanMsg);
-    return ret;
+    return RegWrCb_GranRead(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_RECEIVE_CAN_START, 
+        (uint8_t*)can_msg, sizeof(PCanMsg), cnt, timeout);
 }
 
 

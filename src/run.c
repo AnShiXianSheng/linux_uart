@@ -347,21 +347,21 @@ static int fun_send_can_msg(RunConfig *config){
     return ret;
 }
 
-
+#define TEST_CAN_BUF_SIZE (64-4)
 static int fun_loop_receive_can_msg(RunConfig *config){
     int ret,i;
     (void) config;
-    PCanMsg can_msg[32] = {0};
+    PCanMsg can_msg[TEST_CAN_BUF_SIZE] = {0};
     PCanMsg *can_msg_p;
     while(1){
         /* spi单次多传输点优势大些 */
-        ret = RVMcu_ReceiveCanMsgBlock(can_msg, 32, 200);
+        ret = RVMcu_ReceiveCanMsgBlock(can_msg, TEST_CAN_BUF_SIZE, 200);
         if(ret < 0){
-            dbg_errfl("RVMcu_SendCanMsg error! ret = %d",ret);
-            break;
+            dbg_errfl("RVMcu_ReceiveCanMsgBlock error! ret = %d",ret);
+            continue;
         }
         if(ret == 0){
-            usleep(50000);
+            usleep(500);
             continue;
         }
         /* 成功接收到 */
@@ -375,6 +375,47 @@ static int fun_loop_receive_can_msg(RunConfig *config){
 
     return ret;
 }
+
+static int fun_loop_can_echo_test(RunConfig *config){
+
+    int ret;
+    (void) config;
+    uint32_t test_msg_cnt = 0;
+    PCanMsg can_msg[TEST_CAN_BUF_SIZE] = {0};
+    PCanMsg *can_msg_pos;
+    PCanMsg *can_msg_end;
+    while(1){
+        /* spi单次多传输点优势大些 */
+        ret = RVMcu_ReceiveCanMsgBlock(can_msg, TEST_CAN_BUF_SIZE, 100);
+        if(ret < 0){
+            dbg_errfl("RVMcu_ReceiveCanMsgBlock error! ret = %d",ret);
+            continue;
+        }
+        if(ret == 0){
+            usleep(500);
+            continue;
+        }
+
+        test_msg_cnt += ret;
+        dbg_debugln("第%d次测试! ret = %d",test_msg_cnt, ret);
+
+        can_msg_pos = can_msg;
+        can_msg_end = can_msg_pos + ret;
+        while(can_msg_pos < can_msg_end){
+            ret = RVMcu_SendCanMsgBlock(can_msg_pos, can_msg_end-can_msg_pos, 100);
+            if(ret < 0){
+                dbg_errfl("RVMcu_SendCanMsg error! ret = %d",ret);
+                usleep(500);
+                continue;
+            }
+            can_msg_pos += ret;
+        }
+        
+    }
+
+    return ret;
+}
+
 
 static int fun_setting_wdog(RunConfig *config){
     int ret;
@@ -469,6 +510,8 @@ int  run(RunConfig *config){
             dbg_errfl("设备正忙");
         }
         return ret;
+    }else if(config->mode == FUN_CAN_ECHO_TEST){
+        return fun_loop_can_echo_test(config);
     }
 
 

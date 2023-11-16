@@ -80,6 +80,31 @@ int RegWrCb_Read(RegWrCbHandle *h, uint16_t cb_addr, uint8_t *buf, uint32_t buf_
 }
 
 /**
+ * @brief                   按最小读写粒度来读环形缓冲区
+ * @param  h                句柄
+ * @param  cb_addr          环形缓冲区 寄存器起始地址
+ * @param  data             要读到的缓冲区
+ * @param  gran_size        数据的读写粒度
+ * @param  nmemb            在该粒度下读写数据的数量
+ * @param  timeout          超时时间
+ * @return int              成功返回读到数据的数量，失败返回负数
+ */
+int RegWrCb_GranRead(RegWrCbHandle *h, uint16_t cb_addr, uint8_t *data, uint32_t gran_size, uint32_t nmemb, uint32_t timeout){
+    int ret;
+    uint16_t r_num = nmemb;
+    uint16_t r_len;
+    ret = RegWrCb_Size(h, cb_addr, timeout);
+    if(ret < 0) return ret;
+    r_num = (ret/gran_size) > r_num ? r_num : (ret/gran_size);
+    if(r_num == 0) return 0;
+    r_len = r_num*gran_size;
+    ret = h->read_reg(cb_addr+CBREG_CMD_READ, data, r_len, timeout);
+    if(ret < 0) return ret;
+    return r_num;
+}
+
+
+/**
  * @brief                   写环形缓冲区
  * @param  h                句柄
  * @param  cb_addr          环形缓冲区 寄存器起始地址
@@ -97,6 +122,30 @@ int RegWrCb_Write(RegWrCbHandle *h, uint16_t cb_addr, const uint8_t *data, uint3
     ret = h->write_reg(cb_addr+CBREG_CMD_WRITE, data, w_len, timeout);
     if(ret < 0) return ret;
     return w_len;
+}
+
+/**
+ * @brief                   按最小读写粒度来写环形缓冲区
+ * @param  h                句柄
+ * @param  cb_addr          环形缓冲区 寄存器起始地址
+ * @param  data             要写的数据
+ * @param  gran_size        数据的读写粒度
+ * @param  nmemb            在该粒度下读写数据的数量
+ * @param  timeout          超时时间
+ * @return int              成功返回写数据的数量，失败返回负数
+ */
+int RegWrCb_GranWrite(RegWrCbHandle *h, uint16_t cb_addr, const uint8_t *data, uint32_t gran_size, uint32_t nmemb, uint32_t timeout){
+    int ret;
+    uint16_t w_num = nmemb;
+    uint16_t w_len;
+    ret = RegWrCb_FreeSize(h, cb_addr, timeout);
+    if(ret < 0) return ret;
+    w_num = (ret/gran_size) > w_num ? w_num : (ret/gran_size);
+    if(w_num == 0) return 0;
+    w_len = w_num*gran_size;
+    ret = h->write_reg(cb_addr+CBREG_CMD_WRITE, data, w_len, timeout);
+    if(ret < 0) return ret;
+    return w_num;
 }
 
 /**
@@ -135,7 +184,7 @@ int RegWrCb_ReadAir(RegWrCbHandle *h, uint16_t cb_addr, uint32_t read_size, uint
 
 
 /**
- * @brief                   偷看数据,建议使用这种方式在去读空气，因为读写寄存器可能会丢数据导致环形缓冲区丢数据
+ * @brief                   偷看数据,建议使用这种方式再去读空气，因为读写寄存器可能会出错导致环形缓冲区丢数据
  * @param  h                句柄
  * @param  cb_addr          环形缓冲区 寄存器起始地址
  * @param  buf              存储偷看数据的缓冲区

@@ -44,7 +44,9 @@ typedef struct _RegWrCbHandle{
 extern int RegWrCb_Size(RegWrCbHandle *h, uint16_t cb_addr, uint32_t timeout);
 extern int RegWrCb_FreeSize(RegWrCbHandle *h, uint16_t cb_addr, uint32_t timeout);
 extern int RegWrCb_Read(RegWrCbHandle *h, uint16_t cb_addr, uint8_t *buf, uint32_t buf_size, uint32_t timeout);
+extern int RegWrCb_GranRead(RegWrCbHandle *h, uint16_t cb_addr, uint8_t *data, uint32_t gran_size, uint32_t nmemb, uint32_t timeout);
 extern int RegWrCb_Write(RegWrCbHandle *h, uint16_t cb_addr, const uint8_t *data, uint32_t data_size, uint32_t timeout);
+extern int RegWrCb_GranWrite(RegWrCbHandle *h, uint16_t cb_addr, const uint8_t *data, uint32_t gran_size, uint32_t nmemb, uint32_t timeout);
 extern int RegWrCb_Clean(RegWrCbHandle *h, uint16_t cb_addr, uint32_t timeout);
 extern int RegWrCb_ReadAir(RegWrCbHandle *h, uint16_t cb_addr, uint32_t read_size, uint32_t timeout);
 extern int RegWrCb_Peep(RegWrCbHandle *h, uint16_t cb_addr, uint8_t *buf, uint32_t buf_size, uint32_t timeout);

@@ -128,6 +128,9 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     if(config->clean_nvm != 0){
         config->mode = FUN_CLEAN_NVM;
     }
+    if(config->is_can_echo_test){
+        config->mode = FUN_CAN_ECHO_TEST;
+    }
     return 0;
 }
 
@@ -153,6 +156,7 @@ int main(int argc, const char* argv[]){
         .is_reset_mcu = 0,
         .is_exit_bootloader = 0,
         .is_goto_bootloader = 0,
+        .is_can_echo_test = 0,
         .rearview_type = 0xFFFFFFFF,
         .mcu_debug_level = -1,
     };
@@ -171,6 +175,7 @@ int main(int argc, const char* argv[]){
         OPT_BOOLEAN('b', "mcu-reset", &run_config.is_reset_mcu, "MCU复位", NULL, 0, 0),
         OPT_BOOLEAN('y', "exit-bootloader", &run_config.is_exit_bootloader, "如果在BOOTLOADER中此命令将可以退出BOOTLOADER", NULL, 0, 0),
         OPT_BOOLEAN('f', "goto-bootloader", &run_config.is_goto_bootloader, "如果在APP中此命令将可以进入BOOTLOADER", NULL, 0, 0),
+        OPT_BOOLEAN('T', "can-echo-test", &run_config.is_can_echo_test, "CAN报文ECHO测试", NULL, 0, 0),
         OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
         OPT_STRING('U', "Update", &run_config.mcu_force_firmware, "强行升级固件", NULL, 0, 0),
         OPT_INTEGER('t', "test", &run_config.test_cnt, "测试模式", NULL, 0, 0),

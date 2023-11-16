@@ -39,6 +39,7 @@ extern int RVMcu_WdogGetSta(int *is_on_wdog);
 /* CAN发送与接受接口 */
 extern int RVMcu_ReceiveCanMsgBlock(PCanMsg *can_msg, uint32_t cnt,  uint32_t timeout);
 extern int RVMcu_ReceiveCanMsg(PCanMsg *can_msg, uint32_t timeout);
+extern int RVMcu_SendCanMsgBlock(PCanMsg *can_msg, uint32_t cnt, uint32_t timeout);
 extern int RVMcu_SendCanMsg(PCanMsg *can_msg, uint32_t timeout);
 
 /* 寄存器读写接口 */
