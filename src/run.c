@@ -256,8 +256,9 @@ static int fun_show_mcu_can_event(RunConfig *config){
 
     if( Get_Bit(can_event.period_event_valid, CET_STEERING_ANGLE_I16_L) || 
         Get_Bit(can_event.period_event_valid, CET_STEERING_ANGLE_I16_H) ){
-        dbg_infoln("方向盘角度: %d",    (int16_t)(can_event.event[CET_STEERING_ANGLE_I16_L] | (can_event.event[CET_STEERING_ANGLE_I16_H] << 8)) );
+        dbg_infoln("方向盘角度: %0.3f",    ((int16_t)(can_event.event[CET_STEERING_ANGLE_I16_L] | (can_event.event[CET_STEERING_ANGLE_I16_H] << 8)))/1000.0 );
     }
+    
     if( Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE0) || 
         Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE1) ||
         Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE2) ||
