@@ -246,12 +246,16 @@ static int fun_show_mcu_can_event(RunConfig *config){
 
     if(Get_Bit(can_event.period_event_valid, CET_LEFT_TURN_LIGHT)){
         dbg_infoln("左转灯: %s",    can_event.event[CET_LEFT_TURN_LIGHT] == CLTLE_OFF ? "灯灭": 
-                                    can_event.event[CET_LEFT_TURN_LIGHT] == CLTLE_NORMAL_BLINK ? "正常闪烁":"快速闪烁");
+                                    can_event.event[CET_LEFT_TURN_LIGHT] == CLTLE_NORMAL_BLINK ? "正常闪烁":
+                                    can_event.event[CET_LEFT_TURN_LIGHT] == CLTLE_FAST_BLINK ? "快速闪烁":
+                                    can_event.event[CET_LEFT_TURN_LIGHT] == CLTLE_BRIGHT ? "灯亮":"无效");
     }
 
     if(Get_Bit(can_event.period_event_valid, CET_RIGHT_TURN_LIGHT)){
-        dbg_infoln("右转灯: %s",    can_event.event[CET_RIGHT_TURN_LIGHT] == CLTLE_OFF ? "灯灭": 
-                                    can_event.event[CET_RIGHT_TURN_LIGHT] == CLTLE_NORMAL_BLINK ? "正常闪烁":"快速闪烁");
+        dbg_infoln("右转灯: %s",    can_event.event[CET_RIGHT_TURN_LIGHT] == CRTLE_OFF ? "灯灭": 
+                                    can_event.event[CET_RIGHT_TURN_LIGHT] == CRTLE_NORMAL_BLINK ? "正常闪烁":
+                                    can_event.event[CET_RIGHT_TURN_LIGHT] == CRTLE_FAST_BLINK ? "快速闪烁":
+                                    can_event.event[CET_RIGHT_TURN_LIGHT] == CRTLE_BRIGHT ? "灯亮":"无效");
     }
 
     if( Get_Bit(can_event.period_event_valid, CET_STEERING_ANGLE_I16_L) || 
@@ -267,6 +271,11 @@ static int fun_show_mcu_can_event(RunConfig *config){
         run_time_sec =  can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE0] |  (can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE1] << 8) |
                         (can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE2] << 16) | (can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE3] << 24);
         dbg_infoln("发动机运行时间: %.2fh",    run_time_sec/60.0/60.0 );
+    }
+
+    if( Get_Bit(can_event.period_event_valid, CET_GEARS) ){
+        dbg_infoln("档位: %s",    can_event.event[CET_GEARS] == CGE_NEUTRAL ? "空挡":
+                                    can_event.event[CET_GEARS] == CGE_REVERSE ? "倒车挡":"其他挡");
     }
 
     return 0;

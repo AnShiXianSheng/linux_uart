@@ -81,7 +81,9 @@ typedef enum _CAN_EVENT_TYPE{
     CET_ENGINE_RUN_TIME_U32_BYTE1,          /* 发动机 运行时间单位秒 */
     CET_ENGINE_RUN_TIME_U32_BYTE2,          /* 发动机 运行时间单位秒 */
     CET_ENGINE_RUN_TIME_U32_BYTE3,          /* 发动机 运行时间单位秒 */
-    
+
+    CET_GEARS,                              /* 汽车档位 CET_GEARS_EVENT*/
+
     CET_MAX,
 }CAN_EVENT_TYPE;
 
@@ -143,20 +145,34 @@ typedef enum _CET_REARVIEW_HORIZONTAL_ADJUSTMENT{
 typedef enum _CET_REVERSE_LIGHT{
     CRLE_OFF,                       /* 倒车灯灭 */
     CRLE_ON,                        /* 倒车灯亮 */
+    CRLE_INVALID,                   /* 倒车灯无效 */
 }CET_REVERSE_LIGHT_EVENT;
 
 
 typedef enum _CET_LEFT_TURN_LIGHT{
     CLTLE_OFF,                      /* 左转向灯灭 */
     CLTLE_NORMAL_BLINK,             /* 正常闪烁 */
-    CLTLE_FAST_BLINK                /* 快速闪烁 */
+    CLTLE_FAST_BLINK,               /* 快速闪烁 */
+    CLTLE_BRIGHT,                   /* 左转向灯亮 */
+    CLTLE_INVALID,                  /* 左转向灯无效 */
 }CET_LEFT_TURN_LIGHT_EVENT;
 
 typedef enum _CET_RIGHT_TURN_LIGHT{
     CRTLE_OFF,                      /* 右转向灯灭 */
     CRTLE_NORMAL_BLINK,             /* 正常闪烁 */
-    CRTLE_FAST_BLINK                /* 快速闪烁 */
+    CRTLE_FAST_BLINK,               /* 快速闪烁 */
+    CRTLE_BRIGHT,                   /* 右转向灯亮 */
+    CRTLE_INVALID,                  /* 右转向灯无效 */
 }CET_RIGHT_TURN_LIGHT_EVENT;
+
+
+typedef enum _CET_GEARS_EVENT{
+    CGE_NEUTRAL,                    /* 空档 */
+    CGE_REVERSE,                    /* 倒车档 */
+    CGE_OTHER,                      /* 其他档 */
+}CET_GEARS_EVENT;
+
+
 
 #pragma pack(1)
 typedef struct _RoRegCanEvent{
