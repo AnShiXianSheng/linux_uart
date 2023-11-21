@@ -84,6 +84,9 @@ typedef enum _CAN_EVENT_TYPE{
 
     CET_GEARS,                              /* 汽车档位 CET_GEARS_EVENT*/
 
+    CET_COUNTDOWN_U16_L,                    /* 倒计时事件 */
+    CET_COUNTDOWN_U16_H,
+
     CET_MAX,
 }CAN_EVENT_TYPE;
 

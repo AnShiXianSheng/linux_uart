@@ -167,6 +167,11 @@ static int fun_show_mcu_can_event(RunConfig *config){
                                         can_event.event[CET_MCU_STATE_MACHINE] == CIPE_MPU_RUN_WAIT_DORMANCY ? "等待休眠状态 300S倒计时":   
                                         can_event.event[CET_MCU_STATE_MACHINE] == CIPE_MPU_RUN_FORCE_WAIT_SCREEN_OFF ? "强制等待关屏状态 120S倒计时":
                                         "错误状态");
+    /* 倒计时事件 */
+    if( Get_Bit(can_event.period_event_valid, CET_COUNTDOWN_U16_L) &&
+        Get_Bit(can_event.period_event_valid, CET_COUNTDOWN_U16_H) ){
+        dbg_infoln("MCU状态机倒计时:%d",can_event.event[CET_COUNTDOWN_U16_L] | (can_event.event[CET_COUNTDOWN_U16_H] << 8));
+    }
     
     if(Get_Bit(can_event.period_event_valid, CET_CAN_BUS_VALID))
         dbg_infoln("CAN: %s", can_event.event[CET_CAN_BUS_VALID] ? "有效":"无效");
@@ -189,11 +194,11 @@ static int fun_show_mcu_can_event(RunConfig *config){
        Get_Bit(can_event.period_event_valid, CET_TURN_SPEED_U16_H))
         dbg_infoln("发动机转速: %d rpm", can_event.event[CET_TURN_SPEED_U16_L] | (can_event.event[CET_TURN_SPEED_U16_H] << 8));
 
-    if( Get_Bit(can_event.period_event_valid, CET_TIME_SEC) || 
-        Get_Bit(can_event.period_event_valid, CET_TIME_MIN) || 
-        Get_Bit(can_event.period_event_valid, CET_TIME_HOUR) || 
-        Get_Bit(can_event.period_event_valid, CET_TIME_DAY) || 
-        Get_Bit(can_event.period_event_valid, CET_TIME_MONTH) || 
+    if( Get_Bit(can_event.period_event_valid, CET_TIME_SEC)     && 
+        Get_Bit(can_event.period_event_valid, CET_TIME_MIN)     && 
+        Get_Bit(can_event.period_event_valid, CET_TIME_HOUR)    &&
+        Get_Bit(can_event.period_event_valid, CET_TIME_DAY)     &&
+        Get_Bit(can_event.period_event_valid, CET_TIME_MONTH)   && 
         Get_Bit(can_event.period_event_valid, CET_TIME_YEAR)    ){
         
         dbg_infoln("时间: %02d/%02d/%02d %02d:%02d:%02d", can_event.event[CET_TIME_YEAR] + 1985,
@@ -201,14 +206,14 @@ static int fun_show_mcu_can_event(RunConfig *config){
                         can_event.event[CET_TIME_MIN], can_event.event[CET_TIME_SEC] );
     }
 
-    if( Get_Bit(can_event.period_event_valid, CET_DC_VOL_U16_L) || 
+    if( Get_Bit(can_event.period_event_valid, CET_DC_VOL_U16_L) &&
         Get_Bit(can_event.period_event_valid, CET_DC_VOL_U16_H) ){
         dbg_infoln("电源电压: %.1fv", (can_event.event[CET_DC_VOL_U16_L] | (can_event.event[CET_DC_VOL_U16_H] << 8))*0.1 );
     }
 
-    if( Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE0) || 
-        Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE1) || 
-        Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE2) || 
+    if( Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE0) && 
+        Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE1) && 
+        Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE2) && 
         Get_Bit(can_event.period_event_valid, CET_ROAD_HAUL_U32_BYTE3) ){
         uint32_t rh_u32;
         uint64_t rh_u64;
@@ -258,14 +263,14 @@ static int fun_show_mcu_can_event(RunConfig *config){
                                     can_event.event[CET_RIGHT_TURN_LIGHT] == CRTLE_BRIGHT ? "灯亮":"无效");
     }
 
-    if( Get_Bit(can_event.period_event_valid, CET_STEERING_ANGLE_I16_L) || 
+    if( Get_Bit(can_event.period_event_valid, CET_STEERING_ANGLE_I16_L) && 
         Get_Bit(can_event.period_event_valid, CET_STEERING_ANGLE_I16_H) ){
         dbg_infoln("方向盘角度: %0.3f",    ((int16_t)(can_event.event[CET_STEERING_ANGLE_I16_L] | (can_event.event[CET_STEERING_ANGLE_I16_H] << 8)))/1000.0 );
     }
     
-    if( Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE0) || 
-        Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE1) ||
-        Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE2) ||
+    if( Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE0) && 
+        Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE1) &&
+        Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE2) &&
         Get_Bit(can_event.period_event_valid, CET_ENGINE_RUN_TIME_U32_BYTE3)    ){
         uint32_t run_time_sec;
         run_time_sec =  can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE0] |  (can_event.event[CET_ENGINE_RUN_TIME_U32_BYTE1] << 8) |
