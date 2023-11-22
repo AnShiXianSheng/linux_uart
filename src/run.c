@@ -368,6 +368,11 @@ static int fun_loop_receive_can_msg(RunConfig *config){
     (void) config;
     PCanMsg can_msg[TEST_CAN_BUF_SIZE] = {0};
     PCanMsg *can_msg_p;
+    int is_once = 1;
+    uint16_t last_rtime;
+    double   rtime;
+
+    RVMcu_CleanRxFifo(200);
     while(1){
         /* spi单次多传输点优势大些 */
         ret = RVMcu_ReceiveCanMsgBlock(can_msg, TEST_CAN_BUF_SIZE, 200);
@@ -382,9 +387,25 @@ static int fun_loop_receive_can_msg(RunConfig *config){
         /* 成功接收到 */
         for(i=0;i<ret;i++){
             can_msg_p = can_msg+i;
-            dbg_inforaw(" MCUCAN  %08x   [%d] %02x %02x %02x %02x %02x %02x %02x %02x  \r\n", can_msg_p->can_id, can_msg_p->can_len, 
+            if(config->is_can_print_asc){
+                if(is_once){
+                    is_once = 0;
+                    rtime = 0.0;
+                    last_rtime = can_msg_p->can_time;
+                }else{
+                    rtime += (double)(((uint16_t)(can_msg_p->can_time - last_rtime))/1000.0 + 0.000001);
+                    last_rtime = can_msg_p->can_time;
+                }
+
+                dbg_inforaw("%.6f 1 %08xx Rx d %d %02x %02x %02x %02x %02x %02x %02x %02x\n", rtime, 
+                    can_msg_p->can_id, can_msg_p->can_len,
                     can_msg_p->can_data[0], can_msg_p->can_data[1], can_msg_p->can_data[2], can_msg_p->can_data[3],
                     can_msg_p->can_data[4], can_msg_p->can_data[5], can_msg_p->can_data[6], can_msg_p->can_data[7] );
+            }else{
+                dbg_inforaw(" MCUCAN  %08x  [%d]  %02x %02x %02x %02x %02x %02x %02x %02x \n", can_msg_p->can_id, can_msg_p->can_len, 
+                    can_msg_p->can_data[0], can_msg_p->can_data[1], can_msg_p->can_data[2], can_msg_p->can_data[3],
+                    can_msg_p->can_data[4], can_msg_p->can_data[5], can_msg_p->can_data[6], can_msg_p->can_data[7] );
+            }
         }
     }
 

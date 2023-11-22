@@ -226,6 +226,15 @@ int RVMcu_ReceiveCanMsgBlock(PCanMsg *can_msg, uint32_t cnt,  uint32_t timeout){
         (uint8_t*)can_msg, sizeof(PCanMsg), cnt, timeout);
 }
 
+/**
+ * @brief 清除掉RxFifo的内容
+ * @return int 
+ */
+int RVMcu_CleanRxFifo(uint32_t timeout){
+    return RegWrCb_Clean(&regWrCbHandle, RWREG_CB_MPU_BUSINESS_RECEIVE_CAN_START, timeout);
+}
+
+
 
 /**
  * @brief 烧写MCU

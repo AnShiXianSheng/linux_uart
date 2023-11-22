@@ -58,6 +58,7 @@ typedef struct _RunConfig{
     int           is_show_mcu_info;
     int           is_look_dtc;
     int           is_loop_reveive;
+    int           is_can_print_asc;
     int           is_read;
     int           is_send_can;
     int           is_read_can_event;
