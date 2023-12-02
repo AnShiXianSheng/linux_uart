@@ -57,7 +57,7 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
         return -1;
 
 
-    if(config->is_write || config->is_read || config->is_send_can){
+    if(config->is_write || config->is_read || config->is_send_can ){
         if(argc != 2) return -1;
         config->reg_addr = strtoul(argv[0], &endptr, 0);
         if(argv[0] == endptr)
@@ -79,6 +79,18 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
             }
         }
     }
+
+    if(config->is_write_shanqi_production_date){
+        int reg_cnt;
+        if(argc != 1) return -1;
+        
+        reg_cnt =hex_string_to_byte_array(argv[0], config->wr_buf, 4);
+        if(reg_cnt != 4){
+            dbg_inforaw("ERROR: 请输入生产日期比如20231202\n");
+            return -1;
+        }
+    }
+
     if(config->is_show_mcu_info){
         config->mode = FUN_SHOW_MCU_INFO;
         return 0;
@@ -131,6 +143,9 @@ static int other_argparse_parse(RunConfig* config, int argc, const char* argv[])
     if(config->is_can_echo_test){
         config->mode = FUN_CAN_ECHO_TEST;
     }
+    if(config->is_write_shanqi_production_date){
+        config->mode = FUN_WRITE_SHANQI_PRODUCTION_DATE;
+    }
     return 0;
 }
 
@@ -158,6 +173,7 @@ int main(int argc, const char* argv[]){
         .is_exit_bootloader = 0,
         .is_goto_bootloader = 0,
         .is_can_echo_test = 0,
+        .is_write_shanqi_production_date = 0,
         .rearview_type = 0xFFFFFFFF,
         .mcu_debug_level = -1,
     };
@@ -178,6 +194,7 @@ int main(int argc, const char* argv[]){
         OPT_BOOLEAN('y', "exit-bootloader", &run_config.is_exit_bootloader, "如果在BOOTLOADER中此命令将可以退出BOOTLOADER", NULL, 0, 0),
         OPT_BOOLEAN('f', "goto-bootloader", &run_config.is_goto_bootloader, "如果在APP中此命令将可以进入BOOTLOADER", NULL, 0, 0),
         OPT_BOOLEAN('T', "can-echo-test", &run_config.is_can_echo_test, "CAN报文ECHO测试", NULL, 0, 0),
+        OPT_BOOLEAN(' ', "write-shanqi-production-date", &run_config.is_write_shanqi_production_date, "写陕汽的生产日期", NULL, 0, 0),
         OPT_STRING('u', "update", &run_config.mcu_firmware, "升级固件", NULL, 0, 0),
         OPT_STRING('U', "Update", &run_config.mcu_force_firmware, "强行升级固件", NULL, 0, 0),
         OPT_INTEGER('t', "test", &run_config.test_cnt, "测试模式", NULL, 0, 0),

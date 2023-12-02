@@ -415,6 +415,17 @@ int RVMcu_CleanNvm(int nvm_index ){
         (uint8_t*)&nvm_index_tmp, sizeof(nvm_index_tmp), 200);
 }
 
+/**
+ * @brief  写陕汽的生产日期
+ * @param  production_date   20 23 12 02 -> 20231202 
+ * @return int 
+ */
+int RVMcu_ShanQiProductionDate(uint8_t production_date[4]){
+    return RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, shanqi_data.production_date), 
+        (uint8_t*)production_date, sizeof(((MpuBusinessReg*)0)->shanqi_data.production_date), 200);
+}
+
+
 
 
 /**

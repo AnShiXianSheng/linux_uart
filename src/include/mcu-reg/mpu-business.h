@@ -49,12 +49,25 @@ typedef struct _MpuBusinessReg{
     uint32_t            mpu_supply_voltage;                         /* mpu 的电源电压 */
     uint32_t            mcu_debug_level;                            /* mcu 的DEBUG打印等级 */
     uint32_t            nvm_erase;                                  /* 0:空闲状态，说明可以操作此寄存器, 1:擦除DTC分区, 2:恢复默认设置 对应 MBNvmEraseSta*/
+    union{
+        uint8_t host_r[64];         /* 主机厂信息 */  
+        struct {
+            
+            struct {
+                uint8_t year_h; /* 20 */
+                uint8_t year_l; /* 23 */
+                uint8_t month;  /* 12 */
+                uint8_t day;    /* 2 */
+            }production_date;
+        }shanqi_data;
+    };
 }MpuBusinessReg;
 #pragma pack()
 
 extern void     MpuBusiness_Set80ByteConfig(uint8_t *config_80byte);
 extern void     MpuBusiness_Get80ByteConfig(uint8_t *config_80byte);
 extern void     MpuBusiness_SetCanAllowSend(int is_allow);
+extern void     MpuBusiness_SetCanAllowRecv(int is_allow);
 extern void     MpuBusiness_SetDtcSetting(int is_setting);
 extern void     MpuBusiness_MpuWdogConfig(int is_on);
 extern void     MpuBusiness_Proc(void);

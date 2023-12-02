@@ -60,9 +60,14 @@ extern int RVMcu_SetSupplyVoltage(uint32_t mv);   /* 毫伏，单位 */
 extern int RVMcu_SetMcuDbgLevel(int level);
 extern int RVMcu_CleanNvm(int nvm_index );
 
+/* 为陕汽设计的接口 */
+extern int RVMcu_ShanQiProductionDate(uint8_t production_date[4]);
+
 
 extern int RVMcu_Init(void);
 extern void RVMcu_Exit(void);
+
+
 
 
 

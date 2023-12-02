@@ -42,6 +42,7 @@ enum RUN_FUN{
     FUN_GOTO_BOOTLOADER,
     FUN_CLEAN_NVM,
     FUN_CAN_ECHO_TEST,
+    FUN_WRITE_SHANQI_PRODUCTION_DATE,
 };
 
 typedef struct _RunConfig{
@@ -68,6 +69,7 @@ typedef struct _RunConfig{
     int           is_exit_bootloader;
     int           is_goto_bootloader;
     int           is_can_echo_test;
+    int           is_write_shanqi_production_date;
     char          *mcu_firmware;
     char          *mcu_force_firmware;
     enum RUN_FUN  mode;

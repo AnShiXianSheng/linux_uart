@@ -548,6 +548,8 @@ int  run(RunConfig *config){
         return ret;
     }else if(config->mode == FUN_CAN_ECHO_TEST){
         return fun_loop_can_echo_test(config);
+    }else if(config->mode == FUN_WRITE_SHANQI_PRODUCTION_DATE){
+        return RVMcu_ShanQiProductionDate(config->wr_buf);
     }
 
 
