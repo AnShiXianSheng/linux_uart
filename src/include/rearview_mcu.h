@@ -62,7 +62,7 @@ extern int RVMcu_CleanNvm(int nvm_index );
 
 /* 为陕汽设计的接口 */
 extern int RVMcu_ShanQiProductionDate(uint8_t production_date[4]);
-
+extern int RVMcu_ShanQiCmsMsgSet(uint8_t msg_data[8]);
 
 extern int RVMcu_Init(void);
 extern void RVMcu_Exit(void);

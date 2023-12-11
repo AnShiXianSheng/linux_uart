@@ -53,14 +53,15 @@ typedef struct _MpuBusinessReg{
         uint8_t host_r[64];         /* 主机厂信息 */  
         struct {
             
-            struct {
-                uint8_t year_h; /* 20 */
-                uint8_t year_l; /* 23 */
-                uint8_t month;  /* 12 */
-                uint8_t day;    /* 2 */
-            }production_date;
+                struct {
+                    uint8_t year_h; /* 20 */
+                    uint8_t year_l; /* 23 */
+                    uint8_t month;  /* 12 */
+                    uint8_t day;    /* 2 */
+                }production_date;
         }shanqi_data;
     };
+    uint8_t            shanqi_app_msg_cmd_sta[8];                      /* 陕汽应用报文 */
 }MpuBusinessReg;
 #pragma pack()
 

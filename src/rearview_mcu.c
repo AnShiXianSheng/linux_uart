@@ -82,8 +82,7 @@ static int _BurnMcu(const char* mcu_firmware_path){
         rvm_debug("启动擦除模式失败");
         return ret;
     }
-    usleep(50000);
-    ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 500);
+    ret = RVMcu_ReadReg(RWREG_BURN_START, (uint8_t *)&reg, sizeof(reg), 5000);
     if(ret < 0){
         rvm_debug("读烧写寄存器失败 %d", ret);
         return ret;
@@ -322,12 +321,6 @@ int RVMcu_ForceBurnMcu(const char* mcu_firmware_path){
         return -1;
     }
 
-    reg.burn_mode = BURNMODE_START_ERASE;
-    while(1){
-        ret = RVMcu_WriteReg(RWREG_BURN_START, (uint8_t*)&reg, sizeof(reg.burn_mode), 10);
-        if(ret == 0) break;
-    }
-
     return _BurnMcu(mcu_firmware_path);
 }
 
@@ -425,7 +418,15 @@ int RVMcu_ShanQiProductionDate(uint8_t production_date[4]){
         (uint8_t*)production_date, sizeof(((MpuBusinessReg*)0)->shanqi_data.production_date), 200);
 }
 
-
+/**
+ * @brief  写陕汽周期应用报文数据
+ * @param  production_date   20 23 12 02 -> 20231202 
+ * @return int 
+ */
+int RVMcu_ShanQiCmsMsgSet(uint8_t msg_data[8]){
+    return RVMcu_WriteReg(RWREG_MPU_BUSINESS_REG_START + offsetof(MpuBusinessReg, shanqi_app_msg_cmd_sta), 
+        (uint8_t*)msg_data, sizeof(((MpuBusinessReg*)0)->shanqi_app_msg_cmd_sta), 200);
+}
 
 
 /**
