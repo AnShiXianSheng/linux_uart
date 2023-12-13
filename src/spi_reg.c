@@ -59,7 +59,7 @@
 #define WR_DATA_ALIGN_BYTE                  8  /* 传输数据时向8字节取整 */
 
 
-#define UART_SPEED                      1000000
+#define UART_SPEED                      115200
 
 
 

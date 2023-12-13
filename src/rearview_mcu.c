@@ -29,8 +29,8 @@
 
 #define rvm_debug(s, ...)          dbg_errfl(s, ##__VA_ARGS__)
 
-#define RVM_SPI_PATH "/dev/spidev0.0"
-#define RVM_UART_PATH "/dev/ttyLP1"
+#define RVM_SPI_PATH "/dev/spidev3.0"
+#define RVM_UART_PATH "/dev/ttyS1"
 #define RVM_SPI_SPEED 10000000
 
 static SpiRegHandle spiRegHandle;
